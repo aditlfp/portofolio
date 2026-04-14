@@ -5,6 +5,7 @@ import "./globals.css";
 import { generateThemeVars } from '@/lib/theme';
 import GlobalEnhancements from '@/components/ui/GlobalEnhancements';
 import { getCachedSiteSettings } from '@/lib/site-cache';
+import { Analytics } from '@vercel/analytics/next';
 
 const inter = Inter({
   variable: "--font-inter",
@@ -104,6 +105,7 @@ export default async function RootLayout({
       <body className={`${inter.variable} ${manrope.variable} antialiased selection:bg-primary-container selection:text-on-primary-container bg-surface text-on-surface`}>
         <GlobalEnhancements />
         {children}
+        <Analytics />
       </body>
     </html>
   );
