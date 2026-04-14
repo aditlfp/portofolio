@@ -1,0 +1,141 @@
+import React from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import AppIcon from '@/components/ui/AppIcon';
+
+export default function ProjectDetail({ project, profile }: { project: any, profile: any }) {
+  const tags = JSON.parse(project.tags || '[]') as string[];
+  const gallery = JSON.parse(project.gallery || '[]') as string[];
+  const techStack = JSON.parse(project.tech_stack || '[]') as string[];
+  const stats = JSON.parse(project.stats || '{}') as Record<string, string>;
+
+  return (
+    <div className="animate-fade-in">
+      {/* Hero Section: Immersive Imagery */}
+      <section className="relative w-full min-h-[360px] h-[52vh] md:h-[68vh] px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="w-full h-full rounded-xl overflow-hidden relative group">
+          <Image 
+            src={project.hero_image || project.thumbnail || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop'} 
+            alt={project.title}
+            fill
+            className="object-cover transform transition-transform duration-700 group-hover:scale-105"
+            priority
+          />
+          <div className="absolute inset-0 bg-black/55"></div>
+          
+          {/* Floating Back Button */}
+          <Link href="/#projects" className="absolute top-4 left-4 sm:top-8 sm:left-8 flex items-center space-x-2 text-on-surface bg-surface-container-high/40 backdrop-blur-md px-3 sm:px-4 py-2 rounded-full hover:bg-surface-container-high transition-all">
+            <AppIcon name="arrowBack" />
+            <span className="font-label text-xs uppercase tracking-widest font-medium">All Projects</span>
+          </Link>
+        </div>
+      </section>
+
+      {/* Project Narrative Section */}
+      <article className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+        <div className="editorial-grid gap-12">
+          {/* Left Column: Title & Intro */}
+          <div className="col-span-12 md:col-span-7">
+            <header className="mb-12">
+              <div className="flex items-center space-x-3 mb-6">
+                <span className="px-3 py-1 bg-primary-container/20 text-primary border border-primary/20 rounded-full font-label text-[10px] uppercase tracking-[0.1em] font-bold">
+                  {project.category || 'Portfolio'}
+                </span>
+                <span className="text-slate-500 font-label text-[10px] uppercase tracking-[0.1em]">
+                  {new Date(project.created_at).getFullYear()} Project
+                </span>
+              </div>
+              <h1 className="font-headline text-3xl sm:text-5xl md:text-7xl font-extrabold text-slate-100 tracking-tighter leading-none mb-8">
+                {project.title.split(' ')[0]} <span className="text-primary italic">{project.title.split(' ').slice(1).join(' ')}</span>
+              </h1>
+              <p className="font-body text-base sm:text-xl text-on-surface-variant leading-relaxed max-w-2xl">
+                {project.description}
+              </p>
+            </header>
+
+            <div className="space-y-8 font-body text-slate-300 leading-relaxed text-base sm:text-lg whitespace-pre-line">
+              {project.long_description || 'No detailed description available.'}
+            </div>
+
+            {/* Call to Action */}
+            <div className="mt-12 flex flex-wrap gap-6 items-center">
+              {project.live_url && (
+                <a 
+                  href={project.live_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-[#666de0] text-on-primary w-full sm:w-auto px-6 sm:px-10 py-4 rounded-xl font-bold font-headline text-base sm:text-lg tracking-tight transition-all duration-300 hover:bg-[#757be3] hover:shadow-[0_10px_30px_rgba(79,70,229,0.3)] flex items-center justify-center space-x-3 active:scale-95"
+                >
+                  <span>Launch Live Demo</span>
+                  <AppIcon name="externalLink" />
+                </a>
+              )}
+              {project.repo_url && (
+                <a 
+                  href={project.repo_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-surface-container-high text-primary w-full sm:w-auto px-6 sm:px-10 py-4 rounded-xl font-bold font-headline text-base sm:text-lg tracking-tight transition-all duration-300 hover:bg-surface-container-highest flex items-center justify-center space-x-3 active:scale-95"
+                >
+                  <AppIcon name="code" />
+                  <span>View Repository</span>
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Tech Stack & Specs */}
+          <aside className="col-span-12 md:col-span-4 md:col-start-9">
+            <div className="space-y-8 md:space-y-12 md:sticky md:top-32">
+              {/* Tech Stack Bento Card */}
+              <div className="bg-surface-container-low p-8 rounded-2xl border border-outline-variant/10 shadow-2xl">
+                <h3 className="font-headline text-sm uppercase tracking-[0.2em] text-slate-500 mb-8 font-bold">Technologies Used</h3>
+                <div className="flex flex-wrap gap-3">
+                  {techStack.map((tech, i) => (
+                    <div key={i} className="bg-surface-container-high px-4 py-3 rounded-lg flex items-center space-x-3 group hover:border-primary/40 border border-transparent transition-all">
+                      <AppIcon name="terminal" className="text-xl text-primary" />
+                      <span className="font-body text-sm font-medium text-slate-200">{tech}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Stats/Metadata */}
+              <div className="grid grid-cols-2 gap-4">
+                {Object.entries(stats).map(([label, value], i) => (
+                  <div key={i} className="bg-surface-container-lowest p-6 rounded-2xl">
+                    <p className="font-label text-[10px] uppercase tracking-widest text-slate-500 mb-1">{label}</p>
+                    <p className="font-headline text-2xl font-bold text-primary">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
+        </div>
+      </article>
+
+      {/* Secondary Imagery / Gallery Section */}
+      {gallery.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {gallery.map((img, i) => (
+              <div key={i} className="rounded-2xl overflow-hidden aspect-[4/3] bg-surface-container-low group relative">
+                <Image 
+                  src={img} 
+                  alt={`${project.title} gallery ${i}`} 
+                  fill 
+                  className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Scroll Indicator Anchor */}
+      <div className="hidden lg:block fixed right-8 top-1/2 -translate-y-1/2 w-[1px] h-32 bg-outline-variant/30">
+        <div className="w-full h-1/2 bg-primary"></div>
+      </div>
+    </div>
+  );
+}
