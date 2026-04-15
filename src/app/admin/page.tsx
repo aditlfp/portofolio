@@ -1,6 +1,7 @@
 import { countProjects, countCertificates, countUnreadContacts } from '@/lib/db';
 import React from 'react';
 import AppIcon from '@/components/ui/AppIcon';
+import { connection } from 'next/server';
 
 async function getStats() {
   const [projects, certificates, unreadMessages] = await Promise.all([
@@ -17,6 +18,7 @@ async function getStats() {
 }
 
 export default async function AdminDashboard() {
+  await connection();
   const stats = await getStats();
 
   return (
