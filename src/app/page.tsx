@@ -49,6 +49,8 @@ export default async function Home() {
   };
 
   const renderableSections: RenderableHomeSection[] = sections.flatMap((section: HomeSection) => {
+    if (!section?.id) return [];
+
     if (section.id.startsWith('custom-builder')) {
       return {
         id: section.id,

@@ -31,6 +31,7 @@ function parseJson<T>(value: any, fallback: T): T {
 function normalizeSection(section: any) {
   return {
     ...section,
+    id: section?.id ?? (section?._id?.toString?.() ?? section?._id),
     config: parseJson(section.config, {}),
     visible: section.visible === 1 || section.visible === true,
   };
@@ -40,6 +41,7 @@ function normalizeProject(project: any) {
   if (!project) return null;
   return {
     ...project,
+    id: project?.id ?? (project?._id?.toString?.() ?? project?._id),
     tags: parseJson(project.tags, []),
     gallery: parseJson(project.gallery, []),
     tech_stack: parseJson(project.tech_stack, []),
@@ -53,6 +55,7 @@ function normalizeContact(contact: any) {
   if (!contact) return null;
   return {
     ...contact,
+    id: contact?.id ?? (contact?._id?.toString?.() ?? contact?._id),
     read: contact.read === 1 || contact.read === true,
   };
 }
@@ -476,7 +479,7 @@ const mongoProvider = (() => {
   const getSettings = async () => {
     const db = await connection();
     const rows = await db.collection('settings').find().toArray();
-    return rows.reduce((acc, item) => ({ ...acc, [item.key]: item.value }), { theme_mode: 'dark', primary_color: '#c3c0ff' });
+    return rows.reduce((acc, item) => (item?.key ? { ...acc, [item.key]: item.value } : acc), { theme_mode: 'dark', primary_color: '#c3c0ff' });
   };
 
   const updateSettings = async (settings: Record<string, string>) => {
@@ -487,41 +490,59 @@ const mongoProvider = (() => {
 
   const ensureSeed = async () => {
     const db = await connection();
-    const settingsCount = await db.collection('settings').countDocuments();
-    if (settingsCount === 0) {
-      await db.collection('settings').insertMany([
-        { key: 'theme_mode', value: 'dark' },
-        { key: 'primary_color', value: '#c3c0ff' },
-      ]);
-    }
-    const adminCount = await db.collection('admin_users').countDocuments();
-    if (adminCount === 0) {
-      const hash = bcrypt.hashSync('admin123', 10);
-      await db.collection('admin_users').insertOne({ id: 1, username: 'aditya', password_hash: hash });
-    }
-    const profileCount = await db.collection('profile').countDocuments({ id: 1 });
-    if (profileCount === 0) {
-      await db.collection('profile').insertOne({
-        id: 1,
-        name: 'Aditya',
-        title: 'Senior Product Designer & Full-Stack Developer',
-        bio: 'I am a senior product designer and full-stack developer dedicated to crafting intentional, high-performance interfaces that bridge the gap between human intuition and technical precision.',
-        email: 'hello@executive.design',
-        location: 'San Francisco, CA',
-        years_experience: '8+',
-        avatar: '/img/avatar.jpg',
-      });
-    }
-    const sectionCount = await db.collection('sections').countDocuments();
-    if (sectionCount === 0) {
-      await db.collection('sections').insertMany([
-        { _id: 'hero', label: 'Hero', sort_order: 0, visible: 1, config: '{}' },
-        { _id: 'tech-stack', label: 'Tech Stack', sort_order: 1, visible: 1, config: '{}' },
-        { _id: 'projects', label: 'Projects', sort_order: 2, visible: 1, config: '{}' },
-        { _id: 'certificates', label: 'Certificates', sort_order: 3, visible: 1, config: '{}' },
-        { _id: 'contact', label: 'Contact', sort_order: 4, visible: 1, config: '{}' },
-      ]);
-    }
+    const hash = bcrypt.hashSync('admin123', 10);
+
+    await Promise.all([
+      db.collection('settings').updateOne(
+        { _id: 'theme_mode' },
+        { $setOnInsert: { key: 'theme_mode', value: 'dark' } },
+        { upsert: true }
+      ),
+      db.collection('settings').updateOne(
+        { _id: 'primary_color' },
+        { $setOnInsert: { key: 'primary_color', value: '#c3c0ff' } },
+        { upsert: true }
+      ),
+      db.collection('admin_users').updateOne(
+        { _id: 'admin:aditya' },
+        { $setOnInsert: { id: 1, username: 'aditya', password_hash: hash } },
+        { upsert: true }
+      ),
+      db.collection('profile').updateOne(
+        { _id: 'profile:1' },
+        {
+          $setOnInsert: {
+            id: 1,
+            name: 'Aditya',
+            title: 'Senior Product Designer & Full-Stack Developer',
+            bio: 'I am a senior product designer and full-stack developer dedicated to crafting intentional, high-performance interfaces that bridge the gap between human intuition and technical precision.',
+            email: 'hello@executive.design',
+            location: 'San Francisco, CA',
+            years_experience: '8+',
+            avatar: '/img/avatar.jpg',
+          },
+        },
+        { upsert: true }
+      ),
+    ]);
+
+    const baseSections = [
+      { _id: 'hero', label: 'Hero', sort_order: 0, visible: 1, config: '{}' },
+      { _id: 'tech-stack', label: 'Tech Stack', sort_order: 1, visible: 1, config: '{}' },
+      { _id: 'projects', label: 'Projects', sort_order: 2, visible: 1, config: '{}' },
+      { _id: 'certificates', label: 'Certificates', sort_order: 3, visible: 1, config: '{}' },
+      { _id: 'contact', label: 'Contact', sort_order: 4, visible: 1, config: '{}' },
+    ];
+
+    await db.collection('sections').bulkWrite(
+      baseSections.map((section) => ({
+        updateOne: {
+          filter: { _id: section._id },
+          update: { $setOnInsert: section },
+          upsert: true,
+        },
+      }))
+    );
   };
 
   const getProfile = async () => {
@@ -584,12 +605,15 @@ const mongoProvider = (() => {
 
   const getTechStack = async () => {
     const db = await connection();
-    return await db.collection('tech_stack').find().sort({ sort_order: 1 }).toArray();
+    return (await db.collection('tech_stack').find().sort({ sort_order: 1 }).toArray()).map((item: any) => ({
+      ...item,
+      id: item?.id ?? (item?._id?.toString?.() ?? item?._id),
+    }));
   };
 
   const createTechItem = async (data: any) => {
     const db = await connection();
-    const result = await db.collection('tech_stack').insertOne({ ...data, sort_order: data.sort_order || 0 });
+    const result = await db.collection('tech_stack').insertOne({ _id: randomUUID(), ...data, sort_order: data.sort_order || 0 });
     return result.insertedId.toString();
   };
 
@@ -676,12 +700,16 @@ const mongoProvider = (() => {
 
   const getCertificates = async () => {
     const db = await connection();
-    return await db.collection('certificates').find().sort({ sort_order: 1 }).toArray();
+    return (await db.collection('certificates').find().sort({ sort_order: 1 }).toArray()).map((item: any) => ({
+      ...item,
+      id: item?.id ?? (item?._id?.toString?.() ?? item?._id),
+    }));
   };
 
   const createCertificate = async (data: any) => {
     const db = await connection();
     const result = await db.collection('certificates').insertOne({
+      _id: randomUUID(),
       title: data.title,
       year: data.year,
       image: data.image,
@@ -708,6 +736,7 @@ const mongoProvider = (() => {
   const createContact = async (data: any) => {
     const db = await connection();
     await db.collection('contacts').insertOne({
+      _id: randomUUID(),
       name: data.name,
       email: data.email,
       interest: data.interest,
