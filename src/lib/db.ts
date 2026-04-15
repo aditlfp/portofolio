@@ -14,7 +14,32 @@ declare global {
   var __supabaseClient: ReturnType<typeof createSupabaseClient> | undefined;
 }
 
-const providerName = (process.env.DB_PROVIDER || 'sqlite').toLowerCase() as ProviderName;
+// Validate DB_PROVIDER configuration
+const validateDbProvider = (): ProviderName => {
+  const provider = (process.env.DB_PROVIDER || 'sqlite').toLowerCase() as ProviderName;
+  
+  if (!['sqlite', 'mongodb', 'supabase'].includes(provider)) {
+    console.warn(`Invalid DB_PROVIDER: ${provider}. Defaulting to sqlite.`);
+    return 'sqlite';
+  }
+
+  // Validate provider-specific configuration
+  if (provider === 'mongodb') {
+    if (!process.env.MONGODB_URI) {
+      console.warn('MONGODB_URI not set for MongoDB provider. Defaulting to sqlite.');
+      return 'sqlite';
+    }
+  } else if (provider === 'supabase') {
+    if (!process.env.SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_ANON_KEY)) {
+      console.warn('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY/SUPABASE_ANON_KEY not set. Defaulting to sqlite.');
+      return 'sqlite';
+    }
+  }
+
+  return provider;
+};
+
+const providerName = validateDbProvider();
 
 function parseJson<T>(value: any, fallback: T): T {
   if (value == null) return fallback;
@@ -468,13 +493,43 @@ const sqliteProvider = (() => {
 const mongoProvider = (() => {
   const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017';
   const dbName = process.env.MONGODB_DB || 'portfolio';
-  const client = globalThis.__mongoClient ?? new MongoClient(uri);
-  if (!globalThis.__mongoClient) globalThis.__mongoClient = client;
+  
+  let client: MongoClient | null = null;
+  let connectionError: Error | null = null;
+
+  const getClient = (): MongoClient => {
+    if (!client) {
+      client = globalThis.__mongoClient ?? new MongoClient(uri, {
+        maxPoolSize: 10,
+        minPoolSize: 2,
+        maxIdleTimeMS: 30000,
+        serverSelectionTimeoutMS: 5000,
+      });
+      globalThis.__mongoClient = client;
+    }
+    return client;
+  };
 
   async function connection(): Promise<any> {
-    await client.connect();
-    return client.db(dbName);
+    try {
+      const mongoClient = getClient();
+      await mongoClient.connect();
+      return mongoClient.db(dbName);
+    } catch (error) {
+      connectionError = error as Error;
+      console.error(`MongoDB connection error: ${connectionError.message}. Falling back to default behavior.`);
+      throw error;
+    }
   }
+
+  const safeTryConnection = async <T,>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+    try {
+      return await fn();
+    } catch (error) {
+      console.error(`MongoDB operation failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  };
 
   const getSettings = async () => {
     const db = await connection();
@@ -489,60 +544,65 @@ const mongoProvider = (() => {
   };
 
   const ensureSeed = async () => {
-    const db = await connection();
-    const hash = bcrypt.hashSync('admin123', 10);
+    try {
+      const db = await connection();
+      const hash = bcrypt.hashSync('admin123', 10);
 
-    await Promise.all([
-      db.collection('settings').updateOne(
-        { _id: 'theme_mode' },
-        { $setOnInsert: { key: 'theme_mode', value: 'dark' } },
-        { upsert: true }
-      ),
-      db.collection('settings').updateOne(
-        { _id: 'primary_color' },
-        { $setOnInsert: { key: 'primary_color', value: '#c3c0ff' } },
-        { upsert: true }
-      ),
-      db.collection('admin_users').updateOne(
-        { _id: 'admin:aditya' },
-        { $setOnInsert: { id: 1, username: 'aditya', password_hash: hash } },
-        { upsert: true }
-      ),
-      db.collection('profile').updateOne(
-        { _id: 'profile:1' },
-        {
-          $setOnInsert: {
-            id: 1,
-            name: 'Aditya',
-            title: 'Senior Product Designer & Full-Stack Developer',
-            bio: 'I am a senior product designer and full-stack developer dedicated to crafting intentional, high-performance interfaces that bridge the gap between human intuition and technical precision.',
-            email: 'hello@executive.design',
-            location: 'San Francisco, CA',
-            years_experience: '8+',
-            avatar: '/img/avatar.jpg',
+      await Promise.all([
+        db.collection('settings').updateOne(
+          { _id: 'theme_mode' },
+          { $setOnInsert: { key: 'theme_mode', value: 'dark' } },
+          { upsert: true }
+        ),
+        db.collection('settings').updateOne(
+          { _id: 'primary_color' },
+          { $setOnInsert: { key: 'primary_color', value: '#c3c0ff' } },
+          { upsert: true }
+        ),
+        db.collection('admin_users').updateOne(
+          { _id: 'admin:aditya' },
+          { $setOnInsert: { id: 1, username: 'aditya', password_hash: hash } },
+          { upsert: true }
+        ),
+        db.collection('profile').updateOne(
+          { _id: 'profile:1' },
+          {
+            $setOnInsert: {
+              id: 1,
+              name: 'Aditya',
+              title: 'Senior Product Designer & Full-Stack Developer',
+              bio: 'I am a senior product designer and full-stack developer dedicated to crafting intentional, high-performance interfaces that bridge the gap between human intuition and technical precision.',
+              email: 'hello@executive.design',
+              location: 'San Francisco, CA',
+              years_experience: '8+',
+              avatar: '/img/avatar.jpg',
+            },
           },
-        },
-        { upsert: true }
-      ),
-    ]);
+          { upsert: true }
+        ),
+      ]);
 
-    const baseSections = [
-      { _id: 'hero', label: 'Hero', sort_order: 0, visible: 1, config: '{}' },
-      { _id: 'tech-stack', label: 'Tech Stack', sort_order: 1, visible: 1, config: '{}' },
-      { _id: 'projects', label: 'Projects', sort_order: 2, visible: 1, config: '{}' },
-      { _id: 'certificates', label: 'Certificates', sort_order: 3, visible: 1, config: '{}' },
-      { _id: 'contact', label: 'Contact', sort_order: 4, visible: 1, config: '{}' },
-    ];
+      const baseSections = [
+        { _id: 'hero', label: 'Hero', sort_order: 0, visible: 1, config: '{}' },
+        { _id: 'tech-stack', label: 'Tech Stack', sort_order: 1, visible: 1, config: '{}' },
+        { _id: 'projects', label: 'Projects', sort_order: 2, visible: 1, config: '{}' },
+        { _id: 'certificates', label: 'Certificates', sort_order: 3, visible: 1, config: '{}' },
+        { _id: 'contact', label: 'Contact', sort_order: 4, visible: 1, config: '{}' },
+      ];
 
-    await db.collection('sections').bulkWrite(
-      baseSections.map((section) => ({
-        updateOne: {
-          filter: { _id: section._id },
-          update: { $setOnInsert: section },
-          upsert: true,
-        },
-      }))
-    );
+      await db.collection('sections').bulkWrite(
+        baseSections.map((section) => ({
+          updateOne: {
+            filter: { _id: section._id },
+            update: { $setOnInsert: section },
+            upsert: true,
+          },
+        }))
+      );
+    } catch (error) {
+      console.error(`MongoDB seed initialization failed: ${error instanceof Error ? error.message : String(error)}`);
+      // Don't throw error - allow fallback to continue
+    }
   };
 
   const getProfile = async () => {
@@ -776,7 +836,10 @@ const mongoProvider = (() => {
     return await db.collection('certificates').countDocuments();
   };
 
-  ensureSeed();
+  // Initialize seed data asynchronously (fire and forget)
+  ensureSeed().catch(err => {
+    console.warn('MongoDB seed initialization in background failed (non-blocking):', err instanceof Error ? err.message : String(err));
+  });
 
   return {
     type: 'mongodb' as const,
@@ -1051,7 +1114,10 @@ const supabaseProvider = (() => {
     return count ?? 0;
   };
 
-  ensureSeed();
+  // Initialize seed data asynchronously (fire and forget)
+  ensureSeed().catch(err => {
+    console.warn('Supabase seed initialization in background failed (non-blocking):', err instanceof Error ? err.message : String(err));
+  });
 
   return {
     type: 'supabase' as const,
@@ -1151,3 +1217,5 @@ const db = {
   countCertificates,
   getUnreadCount,
 };
+
+export default db;
