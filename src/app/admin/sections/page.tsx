@@ -1,6 +1,7 @@
 import React from 'react';
 import SectionEditor from '@/components/admin/SectionEditor';
 import { getProfile, getTechStack, getProjects, getCertificates } from '@/lib/db';
+import { connection } from 'next/server';
 
 async function getLandingData() {
   const [profile, techStack, projects, certificates] = await Promise.all([
@@ -13,6 +14,7 @@ async function getLandingData() {
 }
 
 export default async function SectionsPage() {
+  await connection();
   const initialData = await getLandingData();
 
   return (

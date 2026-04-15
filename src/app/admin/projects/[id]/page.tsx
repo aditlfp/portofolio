@@ -2,6 +2,7 @@ import React from 'react';
 import { getProjectByIdOrSlug } from '@/lib/db';
 import ProjectForm from '@/components/admin/ProjectForm';
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 
 async function getProjectData(id: string) {
   try {
@@ -14,6 +15,7 @@ async function getProjectData(id: string) {
 type Params = Promise<{ id: string }>;
 
 export default async function EditProjectPage({ params }: { params: Params }) {
+  await connection();
   const { id } = await params;
   const project = await getProjectData(id);
 

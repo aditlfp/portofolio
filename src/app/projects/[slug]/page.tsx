@@ -1,5 +1,6 @@
 import { getProfile, getProjectByIdOrSlug } from '@/lib/db';
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 import ProjectDetail from '@/components/project/ProjectDetail';
@@ -13,6 +14,7 @@ async function getProject(slug: string) {
 type Params = Promise<{ slug: string }>;
 
 export default async function ProjectPage({ params }: { params: Params }) {
+  await connection();
   const { slug } = await params;
   const { project, profile } = await getProject(slug);
 
