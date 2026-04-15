@@ -62,6 +62,13 @@ const sqliteProvider = (() => {
   const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
 
+  const addColumnIfNotExists = (table: string, column: string, type: string) => {
+    const columns = db.pragma(`table_info(${table})`) as { name: string }[];
+    if (!columns.some(col => col.name === column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    }
+  };
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS profile (
       id INTEGER PRIMARY KEY DEFAULT 1,
@@ -142,6 +149,33 @@ const sqliteProvider = (() => {
     );
   `);
 
+  // Add bilingual columns
+  addColumnIfNotExists('profile', 'name_en', 'TEXT');
+  addColumnIfNotExists('profile', 'name_id', 'TEXT');
+  addColumnIfNotExists('profile', 'title_en', 'TEXT');
+  addColumnIfNotExists('profile', 'title_id', 'TEXT');
+  addColumnIfNotExists('profile', 'bio_en', 'TEXT');
+  addColumnIfNotExists('profile', 'bio_id', 'TEXT');
+  addColumnIfNotExists('profile', 'location_en', 'TEXT');
+  addColumnIfNotExists('profile', 'location_id', 'TEXT');
+  addColumnIfNotExists('profile', 'years_experience_en', 'TEXT');
+  addColumnIfNotExists('profile', 'years_experience_id', 'TEXT');
+
+  addColumnIfNotExists('projects', 'title_en', 'TEXT');
+  addColumnIfNotExists('projects', 'title_id', 'TEXT');
+  addColumnIfNotExists('projects', 'category_en', 'TEXT');
+  addColumnIfNotExists('projects', 'category_id', 'TEXT');
+  addColumnIfNotExists('projects', 'description_en', 'TEXT');
+  addColumnIfNotExists('projects', 'description_id', 'TEXT');
+  addColumnIfNotExists('projects', 'long_description_en', 'TEXT');
+  addColumnIfNotExists('projects', 'long_description_id', 'TEXT');
+
+  addColumnIfNotExists('tech_stack', 'name_en', 'TEXT');
+  addColumnIfNotExists('tech_stack', 'name_id', 'TEXT');
+
+  addColumnIfNotExists('certificates', 'title_en', 'TEXT');
+  addColumnIfNotExists('certificates', 'title_id', 'TEXT');
+
   const seed = () => {
     const settingsCount = db.prepare('SELECT count(*) as count FROM settings').get() as { count: number };
     if (settingsCount.count === 0) {
@@ -187,6 +221,25 @@ const sqliteProvider = (() => {
 
   seed();
 
+  const migrateToBilingual = () => {
+    // Profile
+    const profile = db.prepare('SELECT * FROM profile WHERE id = 1').get() as any;
+    if (profile && profile.name && !profile.name_en) {
+      db.prepare('UPDATE profile SET name_en = name, title_en = title, bio_en = bio, location_en = location, years_experience_en = years_experience WHERE id = 1').run();
+    }
+
+    // Projects
+    db.prepare('UPDATE projects SET title_en = title, category_en = category, description_en = description, long_description_en = long_description WHERE title_en IS NULL').run();
+
+    // Tech stack
+    db.prepare('UPDATE tech_stack SET name_en = name WHERE name_en IS NULL').run();
+
+    // Certificates
+    db.prepare('UPDATE certificates SET title_en = title WHERE title_en IS NULL').run();
+  };
+
+  migrateToBilingual();
+
   const getSettings = async () => {
     const rows = db.prepare('SELECT * FROM settings').all() as { key: string; value: string }[];
     return rows.reduce((acc, item) => ({ ...acc, [item.key]: item.value }), { theme_mode: 'dark', primary_color: '#c3c0ff' });
@@ -206,16 +259,21 @@ const sqliteProvider = (() => {
   const updateProfile = async (data: any) => {
     db.prepare(`
       UPDATE profile SET
-      name = ?, title = ?, bio = ?, avatar = ?, email = ?, location = ?, years_experience = ?, resume_url = ?, updated_at = CURRENT_TIMESTAMP
+      name = COALESCE(?, name), name_en = COALESCE(?, name), name_id = ?,
+      title = COALESCE(?, title), title_en = COALESCE(?, title), title_id = ?,
+      bio = COALESCE(?, bio), bio_en = COALESCE(?, bio), bio_id = ?,
+      avatar = ?, email = ?,
+      location = COALESCE(?, location), location_en = COALESCE(?, location), location_id = ?,
+      years_experience = COALESCE(?, years_experience), years_experience_en = COALESCE(?, years_experience), years_experience_id = ?,
+      resume_url = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = 1
     `).run(
-      data.name,
-      data.title,
-      data.bio,
-      data.avatar,
-      data.email,
-      data.location,
-      data.years_experience,
+      data.name, data.name_en, data.name_id,
+      data.title, data.title_en, data.title_id,
+      data.bio, data.bio_en, data.bio_id,
+      data.avatar, data.email,
+      data.location, data.location_en, data.location_id,
+      data.years_experience, data.years_experience_en, data.years_experience_id,
       data.resume_url
     );
   };
@@ -258,11 +316,11 @@ const sqliteProvider = (() => {
 
   const getTechStack = async () => db.prepare('SELECT * FROM tech_stack ORDER BY sort_order ASC').all();
   const createTechItem = async (data: any) => {
-    const result = db.prepare('INSERT INTO tech_stack (name, icon, sort_order) VALUES (?, ?, ?)').run(data.name, data.icon, data.sort_order || 0);
+    const result = db.prepare('INSERT INTO tech_stack (name, name_en, name_id, icon, sort_order) VALUES (?, ?, ?, ?, ?)').run(data.name, data.name_en, data.name_id, data.icon, data.sort_order || 0);
     return result.lastInsertRowid;
   };
   const updateTechItem = async (id: string, data: any) => {
-    db.prepare('UPDATE tech_stack SET name = ?, icon = ?, sort_order = ? WHERE id = ?').run(data.name, data.icon, data.sort_order, id);
+    db.prepare('UPDATE tech_stack SET name = COALESCE(?, name), name_en = COALESCE(?, name), name_id = ?, icon = ?, sort_order = ? WHERE id = ?').run(data.name, data.name_en, data.name_id, data.icon, data.sort_order, id);
   };
   const deleteTechItem = async (id: string) => {
     db.prepare('DELETE FROM tech_stack WHERE id = ?').run(id);
@@ -279,14 +337,14 @@ const sqliteProvider = (() => {
   const createProject = async (data: any) => {
     const result = db.prepare(`
       INSERT INTO projects (
-        title, slug, description, long_description, category, tags, thumbnail, hero_image, gallery, tech_stack, stats, live_url, repo_url, visibility, sort_order
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        title, title_en, title_id, slug, description, description_en, description_id, long_description, long_description_en, long_description_id, category, category_en, category_id, tags, thumbnail, hero_image, gallery, tech_stack, stats, live_url, repo_url, visibility, sort_order
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      data.title,
+      data.title, data.title_en, data.title_id,
       data.slug,
-      data.description,
-      data.long_description,
-      data.category,
+      data.description, data.description_en, data.description_id,
+      data.long_description, data.long_description_en, data.long_description_id,
+      data.category, data.category_en, data.category_id,
       JSON.stringify(data.tags || []),
       data.thumbnail,
       data.hero_image,
@@ -303,14 +361,19 @@ const sqliteProvider = (() => {
   const updateProject = async (id: string, data: any) => {
     db.prepare(`
       UPDATE projects SET 
-      title = ?, slug = ?, description = ?, long_description = ?, category = ?, tags = ?, thumbnail = ?, hero_image = ?, gallery = ?, tech_stack = ?, stats = ?, live_url = ?, repo_url = ?, visibility = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
+      title = COALESCE(?, title), title_en = COALESCE(?, title), title_id = ?,
+      slug = ?, 
+      description = COALESCE(?, description), description_en = COALESCE(?, description), description_id = ?,
+      long_description = COALESCE(?, long_description), long_description_en = COALESCE(?, long_description), long_description_id = ?,
+      category = COALESCE(?, category), category_en = COALESCE(?, category), category_id = ?,
+      tags = ?, thumbnail = ?, hero_image = ?, gallery = ?, tech_stack = ?, stats = ?, live_url = ?, repo_url = ?, visibility = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
-      data.title,
+      data.title, data.title_en, data.title_id,
       data.slug,
-      data.description,
-      data.long_description,
-      data.category,
+      data.description, data.description_en, data.description_id,
+      data.long_description, data.long_description_en, data.long_description_id,
+      data.category, data.category_en, data.category_id,
       JSON.stringify(data.tags || []),
       data.thumbnail,
       data.hero_image,
@@ -330,11 +393,11 @@ const sqliteProvider = (() => {
 
   const getCertificates = async () => db.prepare('SELECT * FROM certificates ORDER BY sort_order ASC').all();
   const createCertificate = async (data: any) => {
-    const result = db.prepare('INSERT INTO certificates (title, year, image, sort_order) VALUES (?, ?, ?, ?)').run(data.title, data.year, data.image, data.sort_order || 0);
+    const result = db.prepare('INSERT INTO certificates (title, title_en, title_id, year, image, sort_order) VALUES (?, ?, ?, ?, ?, ?)').run(data.title, data.title_en, data.title_id, data.year, data.image, data.sort_order || 0);
     return result.lastInsertRowid;
   };
   const updateCertificate = async (id: string, data: any) => {
-    db.prepare('UPDATE certificates SET title = ?, year = ?, image = ?, sort_order = ? WHERE id = ?').run(data.title, data.year, data.image, data.sort_order || 0, id);
+    db.prepare('UPDATE certificates SET title = COALESCE(?, title), title_en = COALESCE(?, title), title_id = ?, year = ?, image = ?, sort_order = ? WHERE id = ?').run(data.title, data.title_en, data.title_id, data.year, data.image, data.sort_order || 0, id);
   };
   const deleteCertificate = async (id: string) => {
     db.prepare('DELETE FROM certificates WHERE id = ?').run(id);

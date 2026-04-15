@@ -36,11 +36,11 @@ const projectCategoryOptions = [
 export default function ProjectForm({ initialData, id }: { initialData?: any, id?: string }) {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    title: '',
+    title: '', title_en: '', title_id: '',
     slug: '',
-    category: 'Product Design',
-    description: '',
-    long_description: '',
+    category: '', category_en: '', category_id: '',
+    description: '', description_en: '', description_id: '',
+    long_description: '', long_description_en: '', long_description_id: '',
     thumbnail: '',
     hero_image: '',
     live_url: '',
@@ -62,12 +62,32 @@ export default function ProjectForm({ initialData, id }: { initialData?: any, id
 
   useEffect(() => {
     if (initialData) {
-      setFormData({
+      const normalizedData = {
         ...initialData,
+        title: initialData.title || '',
+        title_en: initialData.title_en || '',
+        title_id: initialData.title_id || '',
+        slug: initialData.slug || '',
+        category: initialData.category || '',
+        category_en: initialData.category_en || '',
+        category_id: initialData.category_id || '',
+        description: initialData.description || '',
+        description_en: initialData.description_en || '',
+        description_id: initialData.description_id || '',
+        long_description: initialData.long_description || '',
+        long_description_en: initialData.long_description_en || '',
+        long_description_id: initialData.long_description_id || '',
+        thumbnail: initialData.thumbnail || '',
+        hero_image: initialData.hero_image || '',
+        live_url: initialData.live_url || '',
+        repo_url: initialData.repo_url || '',
+        visibility: initialData.visibility || 'public',
         tags: JSON.parse(initialData.tags || '[]'),
         tech_stack: JSON.parse(initialData.tech_stack || '[]'),
         stats: JSON.parse(initialData.stats || '{}'),
-      });
+        sort_order: initialData.sort_order || 0,
+      };
+      setFormData(normalizedData);
     }
   }, [initialData]);
 
@@ -176,14 +196,24 @@ export default function ProjectForm({ initialData, id }: { initialData?: any, id
             
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Project Title</label>
+                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Project Title (EN)</label>
                 <input 
                   type="text" 
                   className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-xl p-4 focus:ring-primary focus:ring-2 outline-none" 
                   placeholder="Lumina Analytics"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  value={formData.title_en}
+                  onChange={(e) => setFormData({...formData, title_en: e.target.value})}
                   required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Project Title (ID)</label>
+                <input 
+                  type="text" 
+                  className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-xl p-4 focus:ring-primary focus:ring-2 outline-none" 
+                  placeholder="Lumina Analytics"
+                  value={formData.title_id}
+                  onChange={(e) => setFormData({...formData, title_id: e.target.value})}
                 />
               </div>
 
@@ -200,25 +230,66 @@ export default function ProjectForm({ initialData, id }: { initialData?: any, id
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Short Description</label>
+                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Category (EN)</label>
                 <input 
                   type="text" 
                   className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-xl p-4 focus:ring-primary focus:ring-2 outline-none" 
-                  placeholder="SaaS platform for predictive market movements."
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  required
+                  placeholder="Product Design"
+                  value={formData.category_en}
+                  onChange={(e) => setFormData({...formData, category_en: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Category (ID)</label>
+                <input 
+                  type="text" 
+                  className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-xl p-4 focus:ring-primary focus:ring-2 outline-none" 
+                  placeholder="Desain Produk"
+                  value={formData.category_id}
+                  onChange={(e) => setFormData({...formData, category_id: e.target.value})}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Detailed Narrative</label>
+                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Short Description (EN)</label>
+                <input 
+                  type="text" 
+                  className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-xl p-4 focus:ring-primary focus:ring-2 outline-none" 
+                  placeholder="SaaS platform for predictive market movements."
+                  value={formData.description_en}
+                  onChange={(e) => setFormData({...formData, description_en: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Short Description (ID)</label>
+                <input 
+                  type="text" 
+                  className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-xl p-4 focus:ring-primary focus:ring-2 outline-none" 
+                  placeholder="Platform SaaS untuk gerakan pasar prediktif."
+                  value={formData.description_id}
+                  onChange={(e) => setFormData({...formData, description_id: e.target.value})}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Detailed Narrative (EN)</label>
                 <textarea 
                   className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-xl p-4 focus:ring-primary focus:ring-2 outline-none resize-none" 
                   rows={10}
                   placeholder="Describe the challenge, solution, and results..."
-                  value={formData.long_description}
-                  onChange={(e) => setFormData({...formData, long_description: e.target.value})}
+                  value={formData.long_description_en}
+                  onChange={(e) => setFormData({...formData, long_description_en: e.target.value})}
+                ></textarea>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Detailed Narrative (ID)</label>
+                <textarea 
+                  className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-xl p-4 focus:ring-primary focus:ring-2 outline-none resize-none" 
+                  rows={10}
+                  placeholder="Jelaskan tantangan, solusi, dan hasil..."
+                  value={formData.long_description_id}
+                  onChange={(e) => setFormData({...formData, long_description_id: e.target.value})}
                 ></textarea>
               </div>
             </div>

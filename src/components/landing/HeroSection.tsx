@@ -1,22 +1,35 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import AppIcon from '@/components/ui/AppIcon';
 import { TbBrandLaravel } from 'react-icons/tb';
+import { resolveLocalizedField, useLandingI18n } from '@/lib/landing-i18n';
 
-export default function HeroSection({ profile }: { profile: any }) {
+interface HeroProfile {
+  avatar?: string | null;
+  [key: string]: unknown;
+}
+
+export default function HeroSection({ profile }: { profile: HeroProfile | null | undefined }) {
+  const { lang, text } = useLandingI18n();
+  const profileName = resolveLocalizedField(profile, 'name', lang, 'Professional');
+  const profileBio = lang === 'id' && !profile?.bio_id ? text.hero.fallbackBio : resolveLocalizedField(profile, 'bio', lang, text.hero.fallbackBio);
+  const yearsExperience = resolveLocalizedField(profile, 'years_experience', lang, '8+ Years');
+
   return (
     <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-fade-in" id="hero">
       <div className="editorial-grid gap-8 sm:gap-12 items-center text-center lg:text-left">
         <div className="col-span-12 lg:col-span-7 space-y-6 sm:space-y-8 flex flex-col items-center lg:items-start">
           <div className="space-y-3 sm:space-y-4">
             <span className="text-primary font-label text-[10px] sm:text-xs uppercase tracking-[0.2em] font-semibold">
-              Available for specialized projects
+              {text.hero.available}
             </span>
             <h1 className="text-[42px] leading-[0.94] sm:text-5xl md:text-7xl font-headline font-extrabold tracking-tight text-on-background">
-              Full Stack <span className="text-primary">Web</span> Developer.
+              {text.hero.title}
             </h1>
             <p className="text-sm sm:text-lg text-on-surface-variant max-w-xl leading-relaxed break-words">
-              {profile?.bio || 'I am a senior product designer and full-stack developer dedicated to crafting intentional, high-performance interfaces that bridge the gap between human intuition and technical precision.'}
+              {profileBio}
             </p>
           </div>
 
@@ -25,7 +38,7 @@ export default function HeroSection({ profile }: { profile: any }) {
               href="#projects"
               className="indigo-gradient-bg text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold transition-all hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] active:scale-95 text-sm sm:text-base"
             >
-              View My Work
+              {text.hero.cta}
             </Link>
             <div className="flex items-center gap-4">
               <div className="flex -space-x-4">
@@ -33,7 +46,7 @@ export default function HeroSection({ profile }: { profile: any }) {
                   <TbBrandLaravel className="text-sm text-primary" />
                 </div>
               </div>
-              <span className="text-xs sm:text-sm font-label text-on-surface-variant">Top Rated Expert</span>
+              <span className="text-xs sm:text-sm font-label text-on-surface-variant">{text.hero.expert}</span>
             </div>
           </div>
         </div>
@@ -43,7 +56,7 @@ export default function HeroSection({ profile }: { profile: any }) {
             <div className="aspect-square w-full rounded-3xl overflow-hidden shadow-2xl ring-1 ring-outline-variant/20 relative">
               <Image
                 src={profile?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000&auto=format&fit=crop'}
-                alt={profile?.name || 'Professional Portrait'}
+                alt={`${profileName} Portrait`}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 500px"
@@ -57,8 +70,8 @@ export default function HeroSection({ profile }: { profile: any }) {
                   <AppIcon name="sparkles" className="text-primary" />
                 </div>
                 <div className="text-left">
-                  <div className="text-base sm:text-xl font-bold font-headline">{profile?.years_experience || '8+ Years'}</div>
-                  <div className="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">Experience</div>
+                  <div className="text-base sm:text-xl font-bold font-headline">{yearsExperience}</div>
+                  <div className="text-[10px] sm:text-xs text-on-surface-variant uppercase tracking-wider">{text.hero.experience}</div>
                 </div>
               </div>
             </div>

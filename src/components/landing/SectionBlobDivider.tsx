@@ -1,20 +1,10 @@
 type SectionBlobDividerProps = {
   position: 'top' | 'bottom';
-  fromTone: 'surface' | 'surface-low';
-  toTone: 'surface' | 'surface-low';
+  fromColor: string;
+  toColor: string;
   variant?: 'alpha' | 'beta' | 'gamma';
   animate?: boolean;
   intensity?: 'medium';
-};
-
-const toneClassMap: Record<'surface' | 'surface-low', string> = {
-  surface: 'landing-tone-surface',
-  'surface-low': 'landing-tone-surface-low'
-};
-
-const toneCssValueMap: Record<'surface' | 'surface-low', string> = {
-  surface: 'var(--color-surface)',
-  'surface-low': 'var(--color-surface-container-low)'
 };
 
 const blobPathMap: Record<'alpha' | 'beta' | 'gamma', string> = {
@@ -25,8 +15,8 @@ const blobPathMap: Record<'alpha' | 'beta' | 'gamma', string> = {
 
 export default function SectionBlobDivider({
   position,
-  fromTone,
-  toTone,
+  fromColor,
+  toColor,
   variant = 'alpha',
   animate = true,
   intensity = 'medium'
@@ -36,10 +26,9 @@ export default function SectionBlobDivider({
       aria-hidden="true"
       className={[
         'landing-blob-divider-shell',
-        `landing-blob-divider--${intensity}`,
-        `landing-divider-from-${toneClassMap[fromTone]}`
+        `landing-blob-divider--${intensity}`
       ].join(' ')}
-      style={{ backgroundColor: toneCssValueMap[fromTone] }}
+      style={{ backgroundColor: fromColor }}
     >
       <svg
         viewBox="0 0 1440 160"
@@ -49,10 +38,9 @@ export default function SectionBlobDivider({
           'landing-blob-divider',
           `landing-blob-divider--${position}`,
           `landing-blob-divider--${variant}`,
-          animate ? 'landing-blob-divider--animated' : '',
-          `landing-divider-to-${toneClassMap[toTone]}`
+          animate ? 'landing-blob-divider--animated' : ''
         ].join(' ')}
-        style={{ color: toneCssValueMap[toTone] }}
+        style={{ color: toColor }}
       >
         <path d={blobPathMap[variant]} fill="currentColor" />
       </svg>

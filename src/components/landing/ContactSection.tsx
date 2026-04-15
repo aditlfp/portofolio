@@ -2,9 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import AppIcon from '@/components/ui/AppIcon';
+import { resolveLocalizedField, useLandingI18n } from '@/lib/landing-i18n';
 
-const interestOptions = ['Product Design', 'Web Development', 'Brand Strategy', 'Consultation'] as const;
-type InterestOption = (typeof interestOptions)[number];
+type InterestOption = string;
 
 interface ContactProfile {
   email?: string | null;
@@ -12,15 +12,19 @@ interface ContactProfile {
 }
 
 export default function ContactSection({ profile }: { profile: ContactProfile | null | undefined }) {
+  const { lang, text } = useLandingI18n();
+  const email = resolveLocalizedField(profile as Record<string, unknown>, 'email', lang, 'hello@executive.design');
+  const location = resolveLocalizedField(profile as Record<string, unknown>, 'location', lang, 'San Francisco, CA');
+  const interestOptionsLocalized = text.contact.interestOptions as readonly string[];
   const [formData, setFormData] = useState<{
     name: string;
     email: string;
-    interest: InterestOption;
+    interest: string;
     message: string;
   }>({
     name: '',
     email: '',
-    interest: interestOptions[0],
+    interest: interestOptionsLocalized[0],
     message: ''
   });
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -63,7 +67,7 @@ export default function ContactSection({ profile }: { profile: ContactProfile | 
 
       if (response.ok) {
         setStatus('success');
-        setFormData({ name: '', email: '', interest: interestOptions[0], message: '' });
+        setFormData({ name: '', email: '', interest: interestOptionsLocalized[0], message: '' });
       } else {
         setStatus('error');
       }
@@ -79,13 +83,13 @@ export default function ContactSection({ profile }: { profile: ContactProfile | 
           <div className="space-y-6">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant ring-1 ring-white/15 backdrop-blur-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-primary/80" />
-              Available Now
+              {text.contact.available}
             </span>
             <h2 className="text-3xl sm:text-4xl font-headline font-extrabold leading-tight tracking-tight text-on-surface">
-              Let&apos;s build something <span className="text-primary">extraordinary</span> together.
+              {text.contact.title}
             </h2>
             <p className="font-body leading-relaxed text-on-surface-variant">
-              Currently accepting new commissions. Reach out for a free consultation or just to say hi.
+              {text.contact.subtitle}
             </p>
           </div>
 
@@ -94,13 +98,13 @@ export default function ContactSection({ profile }: { profile: ContactProfile | 
               <div className="rounded-xl bg-white/10 p-2.5 transition-colors group-hover:bg-white/15">
                 <AppIcon name="mail" className="text-primary" />
               </div>
-              <span className="font-semibold text-on-surface text-sm sm:text-base break-all">{profile?.email || 'hello@executive.design'}</span>
+              <span className="font-semibold text-on-surface text-sm sm:text-base break-all">{email}</span>
             </div>
             <div className="group flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-3 backdrop-blur-sm ring-1 ring-white/15 transition-colors hover:bg-white/10">
               <div className="rounded-xl bg-white/10 p-2.5 transition-colors group-hover:bg-white/15">
                 <AppIcon name="mapPin" className="text-primary" />
               </div>
-              <span className="font-semibold text-on-surface text-sm sm:text-base">{profile?.location || 'San Francisco, CA'}</span>
+              <span className="font-semibold text-on-surface text-sm sm:text-base">{location}</span>
             </div>
           </div>
         </div>
@@ -109,7 +113,7 @@ export default function ContactSection({ profile }: { profile: ContactProfile | 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface/80">Full Name</label>
+                <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface/80">{text.contact.name}</label>
                 <input
                   className="w-full rounded-xl border-none bg-surface-container-low p-4 text-on-surface outline-none ring-1 ring-outline-variant/35 transition-all placeholder:text-on-surface-variant/70 focus:ring-2 focus:ring-primary/70"
                   placeholder="John Doe"
@@ -120,7 +124,7 @@ export default function ContactSection({ profile }: { profile: ContactProfile | 
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface/80">Email Address</label>
+                <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface/80">{text.contact.email}</label>
                 <input
                   className="w-full rounded-xl border-none bg-surface-container-low p-4 text-on-surface outline-none ring-1 ring-outline-variant/35 transition-all placeholder:text-on-surface-variant/70 focus:ring-2 focus:ring-primary/70"
                   placeholder="john@example.com"
@@ -133,7 +137,7 @@ export default function ContactSection({ profile }: { profile: ContactProfile | 
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface/80">Project Interest</label>
+              <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface/80">{text.contact.interest}</label>
               <div className="relative" ref={interestRef}>
                 <button
                   type="button"
@@ -150,7 +154,7 @@ export default function ContactSection({ profile }: { profile: ContactProfile | 
                       : 'pointer-events-none mt-1 scale-95 opacity-0'
                   }`}
                 >
-                  {interestOptions.map((option) => (
+                  {interestOptionsLocalized.map((option) => (
                     <button
                       key={option}
                       type="button"
@@ -173,10 +177,10 @@ export default function ContactSection({ profile }: { profile: ContactProfile | 
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface/80">Message</label>
+              <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface/80">{text.contact.message}</label>
               <textarea
                 className="w-full resize-none rounded-xl border-none bg-surface-container-low p-4 text-on-surface outline-none ring-1 ring-outline-variant/35 transition-all placeholder:text-on-surface-variant/70 focus:ring-2 focus:ring-primary/70"
-                placeholder="Tell me about your vision..."
+                placeholder={text.contact.messagePlaceholder}
                 rows={5}
                 required
                 value={formData.message}
@@ -184,20 +188,22 @@ export default function ContactSection({ profile }: { profile: ContactProfile | 
               />
             </div>
 
-            <button
-              disabled={status === 'loading'}
-              className={`flex w-full items-center justify-center gap-3 rounded-xl bg-primary-container py-4 font-headline text-lg font-bold tracking-tight text-on-primary shadow-[0_10px_30px_rgba(79,70,229,0.2)] transition-all hover:brightness-110 hover:shadow-[0_16px_34px_rgba(79,70,229,0.3)] active:scale-[0.98] ${status === 'loading' ? 'cursor-not-allowed opacity-70' : ''}`}
-            >
-              {status === 'loading' ? (
-                <>
-                  <span className="loading loading-spinner loading-sm"></span>
-                  Sending...
-                </>
-              ) : 'Send Message'}
-            </button>
+            <div className='w-full flex justify-end'>
+              <button
+                disabled={status === 'loading'}
+                className={`flex items-center justify-center gap-3 rounded-xl border border-blue-500/15 bg-blue-500/[0.06] btn p-5 backdrop-blur-sm active:scale-[0.98] ${status === 'loading' ? 'cursor-not-allowed opacity-70' : ''}`}
+              >
+                {status === 'loading' ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    {text.contact.sending}
+                  </>
+                ) : text.contact.send}
+              </button>
+            </div>
 
-            {status === 'success' && <p className="text-emerald-400 text-center font-bold animate-fade-in">Message sent successfully.</p>}
-            {status === 'error' && <p className="text-error text-center font-bold animate-fade-in">Error sending message. Please try again.</p>}
+            {status === 'success' && <p className="text-emerald-400 text-center font-bold animate-fade-in">{text.contact.success}</p>}
+            {status === 'error' && <p className="text-error text-center font-bold animate-fade-in">{text.contact.error}</p>}
           </form>
         </div>
       </div>

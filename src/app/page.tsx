@@ -22,6 +22,7 @@ type RenderableHomeSection = {
   id: string;
   node: React.ReactNode;
   tone: SectionTone;
+  boundaryColor: string;
 };
 
 const dividerVariants = ['alpha', 'beta', 'gamma'] as const;
@@ -29,6 +30,11 @@ const dividerVariants = ['alpha', 'beta', 'gamma'] as const;
 const getSectionTone = (sectionId: string): SectionTone => {
   if (sectionId === 'tech-stack' || sectionId === 'certificates') return 'surface-low';
   return 'surface';
+};
+
+const getSectionBoundaryColor = (sectionId: string): string => {
+  if (sectionId === 'tech-stack' || sectionId === 'certificates') return 'var(--color-surface-container-low)';
+  return 'var(--color-surface)';
 };
 
 export default async function Home() {
@@ -47,7 +53,8 @@ export default async function Home() {
       return {
         id: section.id,
         node: <CustomBuilderSection key={section.id} encodedConfig={section.config} />,
-        tone: 'surface'
+        tone: 'surface',
+        boundaryColor: 'var(--color-surface)'
       };
     }
 
@@ -57,7 +64,8 @@ export default async function Home() {
     return {
       id: section.id,
       node: renderSection(section.id),
-      tone: getSectionTone(section.id)
+      tone: getSectionTone(section.id),
+      boundaryColor: getSectionBoundaryColor(section.id)
     };
   });
 
@@ -68,16 +76,20 @@ export default async function Home() {
 
         <main className="pt-28 sm:pt-32 pb-16 sm:pb-24 overflow-x-hidden">
           {renderableSections.map((section, index) => {
-            const previousTone = renderableSections[index - 1]?.tone ?? section.tone;
+            const previousBoundaryColor = renderableSections[index - 1]?.boundaryColor ?? section.boundaryColor;
             const variant = dividerVariants[index % dividerVariants.length];
 
             return (
-              <div key={`shell-${section.id}`} className={`landing-section-shell landing-section-shell--${section.tone}`}>
+              <div
+                key={`shell-${section.id}`}
+                className={`landing-section-shell landing-section-shell--${section.tone}`}
+                style={{ backgroundColor: section.boundaryColor }}
+              >
                 {index > 0 && (
                   <SectionBlobDivider
                     position="top"
-                    fromTone={previousTone}
-                    toTone={section.tone}
+                    fromColor={previousBoundaryColor}
+                    toColor={section.boundaryColor}
                     variant={variant}
                     intensity="medium"
                     animate
