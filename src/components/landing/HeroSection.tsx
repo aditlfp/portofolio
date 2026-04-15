@@ -64,7 +64,7 @@ export default function HeroSection({ profile }: { profile: HeroProfile | null |
                 priority
               />
             </div>
-            <div className="absolute -bottom-4 left-2 sm:-bottom-6 sm:-left-6 bg-surface-container-high p-3 sm:p-6 rounded-2xl shadow-xl ring-1 ring-outline-variant/10 z-10">
+            <div className="absolute -bottom-0 left-2 sm:-bottom-6 sm:-left-6 bg-surface-container-high mb-2 sm:mb-0 p-3 sm:p-6 rounded-2xl shadow-xl shadow-blue-500/10 ring-1 ring-outline-variant/10 z-10">
               <div className="flex items-center gap-2 sm:gap-4">
                 <div className="p-2 sm:p-3 bg-primary-container/20 rounded-lg">
                   <AppIcon name="sparkles" className="text-primary" />

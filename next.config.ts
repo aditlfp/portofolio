@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  allowedDevOrigins: ['192.168.18.15'],
   // Update for Next.js 16
   serverExternalPackages: ["better-sqlite3"],
 };
