@@ -16,27 +16,52 @@ declare global {
 
 // Validate DB_PROVIDER configuration
 const validateDbProvider = (): ProviderName => {
+  const isVercel = process.env.VERCEL || process.env.VERCEL_ENV;
+  const isProduction = process.env.NODE_ENV === 'production';
+
   const provider = (process.env.DB_PROVIDER || 'sqlite').toLowerCase() as ProviderName;
-  
-  if (!['sqlite', 'mongodb', 'supabase'].includes(provider)) {
-    console.warn(`Invalid DB_PROVIDER: ${provider}. Defaulting to sqlite.`);
+
+  console.log('🔍 DB_PROVIDER validation:', {
+    DB_PROVIDER: process.env.DB_PROVIDER,
+    provider,
+    isVercel,
+    isProduction,
+    MONGODB_URI: process.env.MONGODB_URI ? '[SET]' : '[NOT SET]',
+    SUPABASE_URL: process.env.SUPABASE_URL ? '[SET]' : '[NOT SET]',
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL_ENV: process.env.VERCEL_ENV
+  });
+
+  // Special handling for Vercel production
+  if (isVercel && isProduction && provider === 'sqlite') {
+    console.warn('⚠️  SQLite detected in Vercel production. This will fail!');
+    console.warn('💡 Please set DB_PROVIDER=mongodb or DB_PROVIDER=supabase in Vercel dashboard.');
+  }
+    console.warn(`❌ Invalid DB_PROVIDER: ${provider}. Defaulting to sqlite.`);
     return 'sqlite';
   }
 
   // Validate provider-specific configuration
   if (provider === 'mongodb') {
-    if (!process.env.MONGODB_URI) {
-      console.warn('MONGODB_URI not set for MongoDB provider. Defaulting to sqlite.');
+    if (!process.env.MONGODB_URI || process.env.MONGODB_URI.trim() === '') {
+      console.warn('❌ MONGODB_URI not set or empty for MongoDB provider. Defaulting to sqlite.');
       return 'sqlite';
     }
-  } else if (provider === 'supabase') {
-    if (!process.env.SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_ANON_KEY)) {
-      console.warn('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY/SUPABASE_ANON_KEY not set. Defaulting to sqlite.');
-      return 'sqlite';
-    }
+    console.log('✅ MongoDB provider selected and configured');
+    return 'mongodb';
   }
 
-  return provider;
+  if (provider === 'supabase') {
+    if (!process.env.SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_ANON_KEY)) {
+      console.warn('❌ SUPABASE_URL or SUPABASE keys not set. Defaulting to sqlite.');
+      return 'sqlite';
+    }
+    console.log('✅ Supabase provider selected and configured');
+    return 'supabase';
+  }
+
+  console.log('✅ SQLite provider selected (default)');
+  return 'sqlite';
 };
 
 const providerName = validateDbProvider();
@@ -86,9 +111,34 @@ function normalizeContact(contact: any) {
 }
 
 const sqliteProvider = (() => {
-  const dbPath = path.join(process.cwd(), 'database.sqlite');
-  const db = new Database(dbPath);
-  db.pragma('journal_mode = WAL');
+  console.log('🔧 Initializing SQLite provider...');
+
+  // Check if we're in Vercel (serverless environment)
+  const isVercel = process.env.VERCEL || process.env.VERCEL_ENV;
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isVercel && isProduction) {
+    console.warn('⚠️  SQLite is not suitable for Vercel production. Consider using MongoDB or Supabase.');
+    console.warn('⚠️  Vercel serverless functions have read-only file systems.');
+  }
+
+  const dbPath = process.env.SQLITE_PATH || path.join(process.cwd(), 'database.sqlite');
+  console.log('📁 SQLite database path:', dbPath);
+
+  let db: Database.Database | null = null;
+
+  try {
+    db = new Database(dbPath);
+    db.pragma('journal_mode = WAL');
+    console.log('✅ SQLite database initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize SQLite database:', error);
+    if (isVercel) {
+      console.error('💡 This is likely because Vercel serverless functions cannot write to the file system.');
+      console.error('💡 Please use MongoDB or Supabase for production deployments.');
+    }
+    throw error;
+  }
 
   const addColumnIfNotExists = (table: string, column: string, type: string) => {
     const columns = db.pragma(`table_info(${table})`) as { name: string }[];
@@ -491,8 +541,17 @@ const sqliteProvider = (() => {
 })();
 
 const mongoProvider = (() => {
+  console.log('🔧 Initializing MongoDB provider...');
+
   const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017';
   const dbName = process.env.MONGODB_DB || 'portfolio';
+
+  console.log('🔗 MongoDB config:', {
+    uri: uri ? '[SET]' : '[NOT SET]',
+    dbName,
+    hasUri: !!uri,
+    uriLength: uri?.length || 0
+  });
   
   let client: MongoClient | null = null;
   let connectionError: Error | null = null;
@@ -1153,6 +1212,10 @@ const supabaseProvider = (() => {
 })();
 
 const provider = providerName === 'mongodb' ? mongoProvider : providerName === 'supabase' ? supabaseProvider : sqliteProvider;
+
+console.log(`🚀 Final database provider: ${providerName}`);
+console.log(`📊 Database provider type: ${provider.type}`);
+console.log(`🔗 Database provider name exported: ${providerName}`);
 
 export const dbProviderName = providerName;
 export const getSettings = async () => provider.getSettings();
