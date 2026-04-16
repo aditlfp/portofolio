@@ -1217,7 +1217,6 @@ if (providerName == 'mongodb') {
 }
 
 console.log(`🚀 Final database provider: ${providerName}`);
-console.log(`📊 Database provider type: ${provider.type}`);
 console.log(`🔗 Database provider name exported: ${providerName}`);
 
 export const dbProviderName = providerName;
