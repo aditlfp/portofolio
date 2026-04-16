@@ -1208,13 +1208,12 @@ const createSupabaseProvider = (() => {
 });
 
 
-if (providerName == 'mongodb') {
-  createMongoProvider();
-} else if (providerName == 'supabase') {
-  createSupabaseProvider();
-} else {
-  createSqliteProvider();
-}
+const provider =
+  providerName == 'mongodb'
+    ? createMongoProvider()
+    : providerName == 'supabase'
+    ? createSupabaseProvider()
+    : createSqliteProvider();
 
 console.log(`🚀 Final database provider: ${providerName}`);
 console.log(`🔗 Database provider name exported: ${providerName}`);
