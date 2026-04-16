@@ -17,7 +17,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Executive Portfolio | Senior Product Designer & Full-Stack Developer",
+  title: "Aditya Andrian Krisna Budi Portfolio | Full-Stack Web Developer",
   description: "Architecting Digital Experiences. Senior product designer and full-stack developer dedicated to crafting intentional, high-performance interfaces.",
   keywords: ["Software Engineer", "Product Designer", "Full-Stack Developer", "Web Development", "UI/UX", "Next.js", "React"],
   authors: [{ name: 'Executive Design' }],
@@ -29,19 +29,19 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: '/',
-    title: 'Executive Portfolio',
+    title: 'Aditya Andrian Krisna Budi Portfolio | Full-Stack Web Developer',
     description: 'Senior product designer and full-stack developer dedicated to crafting intentional, high-performance interfaces.',
-    siteName: 'Executive Portfolio',
+    siteName: 'Aditya Andrian Krisna Budi Portfolio',
     images: [{
       url: '/og-image.jpg', // Placeholder for standard OG image
       width: 1200,
       height: 630,
-      alt: 'Executive Portfolio',
+      alt: 'Aditya Andrian Krisna Budi Portfolio',
     }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Executive Portfolio',
+    title: 'Aditya Andrian Krisna Budi Portfolio | Full-Stack Web Developer',
     description: 'Senior product designer and full-stack developer dedicated to crafting intentional, high-performance interfaces.',
     creator: '@yourhandle',
   },

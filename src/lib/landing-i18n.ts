@@ -10,6 +10,7 @@ export const LANDING_LANG_EVENT = 'landing-lang-change';
 type LandingDictionary = {
   nav: {
     about: string;
+    portfolio: string;
     projects: string;
     contact: string;
     hireMe: string;
@@ -84,6 +85,7 @@ const dictionary: Record<LandingLang, LandingDictionary> = {
   en: {
     nav: {
       about: 'About',
+      portfolio: 'Portfolio',
       projects: 'Projects',
       contact: 'Contact',
       hireMe: 'Hire Me',
@@ -152,6 +154,7 @@ const dictionary: Record<LandingLang, LandingDictionary> = {
   id: {
     nav: {
       about: 'Tentang',
+      portfolio: 'Portofolio',
       projects: 'Proyek',
       contact: 'Kontak',
       hireMe: 'Hire Me',

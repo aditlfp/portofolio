@@ -38,7 +38,7 @@ export default function Navbar({ profile }: { profile: NavbarProfile | null | un
       <nav className={`glass-navbar backdrop-blur-sm w-full max-w-7xl rounded-[1.2rem] sm:rounded-[1.6rem] border px-3 py-2.5 sm:px-6 sm:py-4 transition-all duration-300 ${isScrolled ? 'border-white/16 shadow-[0_22px_60px_rgba(0,0,0,0.34)]' : 'border-white/10 shadow-[0_14px_36px_rgba(0,0,0,0.2)]'} flex items-center justify-between gap-2`}>
         <div className="text-[11px] sm:text-xl font-black uppercase tracking-[0.08em] text-slate-100 font-headline truncate max-w-[calc(100%-44px)] sm:max-w-none">
           <span className="glass-navbar-title">
-            {displayName} Portfolio
+            {displayName} {text.nav.portfolio}
           </span>
         </div>
 
