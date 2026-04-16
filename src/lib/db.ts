@@ -19,7 +19,7 @@ const validateDbProvider = (): ProviderName => {
   const isVercel = process.env.VERCEL || process.env.VERCEL_ENV;
   const isProduction = process.env.NODE_ENV === 'production';
 
-  const provider = (process.env.DB_PROVIDER || 'sqlite').toLowerCase() as ProviderName;
+  const provider = (process.env.DB_PROVIDER).toLowerCase() as ProviderName;
 
   console.log('🔍 DB_PROVIDER validation:', {
     DB_PROVIDER: process.env.DB_PROVIDER,
@@ -41,7 +41,7 @@ const validateDbProvider = (): ProviderName => {
     console.warn('⚠️ SQLite detected in Vercel production.');
   }
 
-  if (provider === 'mongodb') {
+  if (provider == 'mongodb') {
     if (!process.env.MONGODB_URI) {
       console.warn('❌ MONGODB_URI not set. Defaulting to sqlite.');
       return 'sqlite';
@@ -49,7 +49,7 @@ const validateDbProvider = (): ProviderName => {
     return 'mongodb';
   }
 
-  if (provider === 'supabase') {
+  if (provider == 'supabase') {
     if (!process.env.SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_ANON_KEY)) {
       console.warn('❌ Supabase config missing. Defaulting to sqlite.');
       return 'sqlite';
@@ -61,6 +61,16 @@ const validateDbProvider = (): ProviderName => {
 };
 
 const providerName = validateDbProvider();
+let provider;
+if (providerName == 'mongodb') {
+  provider = createMongoProvider();
+} else if (providerName == 'supabase') {
+  provider = createSupabaseProvider();
+} else {
+  provider = createSqliteProvider();
+}
+
+console.log("FINALIZE PROVIDER SELECT: ", provider, "AND", providerName);
 
 function parseJson<T>(value: any, fallback: T): T {
   if (value == null) return fallback;
@@ -106,7 +116,7 @@ function normalizeContact(contact: any) {
   };
 }
 
-const sqliteProvider = (() => {
+const createSqliteProvider = (() => {
   console.log('🔧 Initializing SQLite provider...');
 
   // Check if we're in Vercel (serverless environment)
@@ -536,7 +546,7 @@ const sqliteProvider = (() => {
   };
 })();
 
-const mongoProvider = (() => {
+const createMongoProvider = (() => {
   console.log('🔧 Initializing MongoDB provider...');
 
   const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017';
@@ -929,7 +939,7 @@ const mongoProvider = (() => {
   };
 })();
 
-const supabaseProvider = (() => {
+const createSupabaseProvider = (() => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
   if (!url || !key) {
@@ -1207,7 +1217,6 @@ const supabaseProvider = (() => {
   };
 })();
 
-const provider = providerName === 'mongodb' ? mongoProvider : providerName === 'supabase' ? supabaseProvider : sqliteProvider;
 
 console.log(`🚀 Final database provider: ${providerName}`);
 console.log(`📊 Database provider type: ${provider.type}`);
