@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 
 export type LandingLang = 'en' | 'id';
 
@@ -305,26 +305,22 @@ export const setStoredLandingLang = (lang: LandingLang) => {
 };
 
 export const useLandingI18n = () => {
-  const [lang, setLang] = useState<LandingLang>(() => getStoredLandingLang());
-
-  useEffect(() => {
-    const onLangChange = (event: Event) => {
-      const customEvent = event as CustomEvent<LandingLang>;
-      if (customEvent.detail === 'en' || customEvent.detail === 'id') {
-        setLang(customEvent.detail);
-      }
-    };
-
-    window.addEventListener(LANDING_LANG_EVENT, onLangChange);
-    return () => window.removeEventListener(LANDING_LANG_EVENT, onLangChange);
-  }, []);
+  const lang = useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === 'undefined') return () => {};
+      const listener = () => onStoreChange();
+      window.addEventListener(LANDING_LANG_EVENT, listener);
+      return () => window.removeEventListener(LANDING_LANG_EVENT, listener);
+    },
+    () => getStoredLandingLang(),
+    () => 'en'
+  );
 
   const text = useMemo(() => dictionary[lang], [lang]);
 
   const changeLang = (nextLang: LandingLang) => {
-    setLang(nextLang);
     setStoredLandingLang(nextLang);
   };
 
-  return { lang, text, changeLang, setLang };
+  return { lang, text, changeLang, setLang: changeLang };
 };

@@ -85,9 +85,37 @@ function normalizeSection(section: any) {
 
 function normalizeProject(project: any) {
   if (!project) return null;
+  const pickText = (...values: any[]) => {
+    for (const value of values) {
+      if (typeof value === 'string' && value.trim().length > 0) return value;
+    }
+    return '';
+  };
+
+  const titleEn = project.title_en ?? null;
+  const titleId = project.title_id ?? null;
+  const descriptionEn = project.description_en ?? null;
+  const descriptionId = project.description_id ?? null;
+  const longDescriptionEn = project.long_description_en ?? null;
+  const longDescriptionId = project.long_description_id ?? null;
+  const categoryEn = project.category_en ?? null;
+  const categoryId = project.category_id ?? null;
+
   return {
     ...project,
     id: project?.id ?? (project?._id?.toString?.() ?? project?._id),
+    title_en: titleEn,
+    title_id: titleId,
+    description_en: descriptionEn,
+    description_id: descriptionId,
+    long_description_en: longDescriptionEn,
+    long_description_id: longDescriptionId,
+    category_en: categoryEn,
+    category_id: categoryId,
+    title: pickText(project.title, titleEn, titleId),
+    description: pickText(project.description, descriptionEn, descriptionId),
+    long_description: pickText(project.long_description, longDescriptionEn, longDescriptionId),
+    category: pickText(project.category, categoryEn, categoryId),
     tags: parseJson(project.tags, []),
     gallery: parseJson(project.gallery, []),
     tech_stack: parseJson(project.tech_stack, []),
@@ -750,20 +778,29 @@ const createMongoProvider = (() => {
 
   const getProjectByIdOrSlug = async (idOrSlug: string) => {
     const db = await connection();
-    return await db
+    const project = await db
       .collection('projects')
       .findOne({ $or: [{ _id: idOrSlug }, { slug: idOrSlug }] });
+    return normalizeProject(project);
   };
 
   const createProject = async (data: any) => {
     const db = await connection();
     const record = {
       _id: data.id || randomUUID(),
-      title: data.title,
+      title: data.title || data.title_en || data.title_id || '',
+      title_en: data.title_en || data.title || '',
+      title_id: data.title_id || '',
       slug: data.slug,
-      description: data.description,
-      long_description: data.long_description,
-      category: data.category,
+      description: data.description || data.description_en || data.description_id || '',
+      description_en: data.description_en || data.description || '',
+      description_id: data.description_id || '',
+      long_description: data.long_description || data.long_description_en || data.long_description_id || '',
+      long_description_en: data.long_description_en || data.long_description || '',
+      long_description_id: data.long_description_id || '',
+      category: data.category || data.category_en || data.category_id || '',
+      category_en: data.category_en || data.category || '',
+      category_id: data.category_id || '',
       tags: parseJson(data.tags, []),
       thumbnail: data.thumbnail,
       hero_image: data.hero_image,
@@ -787,11 +824,19 @@ const createMongoProvider = (() => {
       { $or: [{ _id: id }, { slug: id }] },
       {
         $set: {
-          title: data.title,
+          title: data.title || data.title_en || data.title_id || '',
+          title_en: data.title_en || data.title || '',
+          title_id: data.title_id || '',
           slug: data.slug,
-          description: data.description,
-          long_description: data.long_description,
-          category: data.category,
+          description: data.description || data.description_en || data.description_id || '',
+          description_en: data.description_en || data.description || '',
+          description_id: data.description_id || '',
+          long_description: data.long_description || data.long_description_en || data.long_description_id || '',
+          long_description_en: data.long_description_en || data.long_description || '',
+          long_description_id: data.long_description_id || '',
+          category: data.category || data.category_en || data.category_id || '',
+          category_en: data.category_en || data.category || '',
+          category_id: data.category_id || '',
           tags: parseJson(data.tags, []),
           thumbnail: data.thumbnail,
           hero_image: data.hero_image,
@@ -1048,17 +1093,25 @@ const createSupabaseProvider = (() => {
     const { data } = await ensureSuccess<any[]>(
       client.from('projects').select('*').or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`).limit(1)
     );
-    return data?.[0] ?? null;
+    return normalizeProject(data?.[0] ?? null);
   };
 
   const createProject = async (data: any) => {
     const project = {
       id: randomUUID(),
-      title: data.title,
+      title: data.title || data.title_en || data.title_id || '',
+      title_en: data.title_en || data.title || '',
+      title_id: data.title_id || '',
       slug: data.slug,
-      description: data.description,
-      long_description: data.long_description,
-      category: data.category,
+      description: data.description || data.description_en || data.description_id || '',
+      description_en: data.description_en || data.description || '',
+      description_id: data.description_id || '',
+      long_description: data.long_description || data.long_description_en || data.long_description_id || '',
+      long_description_en: data.long_description_en || data.long_description || '',
+      long_description_id: data.long_description_id || '',
+      category: data.category || data.category_en || data.category_id || '',
+      category_en: data.category_en || data.category || '',
+      category_id: data.category_id || '',
       tags: parseJson(data.tags, []),
       thumbnail: data.thumbnail,
       hero_image: data.hero_image,
@@ -1079,11 +1132,19 @@ const createSupabaseProvider = (() => {
   const updateProject = async (id: string, data: any) => {
     await ensureSuccess(
       client.from('projects').update({
-        title: data.title,
+        title: data.title || data.title_en || data.title_id || '',
+        title_en: data.title_en || data.title || '',
+        title_id: data.title_id || '',
         slug: data.slug,
-        description: data.description,
-        long_description: data.long_description,
-        category: data.category,
+        description: data.description || data.description_en || data.description_id || '',
+        description_en: data.description_en || data.description || '',
+        description_id: data.description_id || '',
+        long_description: data.long_description || data.long_description_en || data.long_description_id || '',
+        long_description_en: data.long_description_en || data.long_description || '',
+        long_description_id: data.long_description_id || '',
+        category: data.category || data.category_en || data.category_id || '',
+        category_en: data.category_en || data.category || '',
+        category_id: data.category_id || '',
         tags: parseJson(data.tags, []),
         thumbnail: data.thumbnail,
         hero_image: data.hero_image,

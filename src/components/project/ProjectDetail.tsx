@@ -18,6 +18,37 @@ const parseFlexibleJson = <T,>(value: unknown, fallback: T): T => {
   return value as T;
 };
 
+const hasHtmlTags = (content: string) => /<\/?[a-z][\s\S]*>/i.test(content);
+
+const escapeHtml = (content: string) =>
+  content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const toNarrativeHtml = (content: string) => {
+  if (!content.trim()) return '';
+  if (hasHtmlTags(content)) return content;
+  return content
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br />')}</p>`)
+    .join('');
+};
+
+const asStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0);
+};
+
+const asStatsObject = (value: unknown): Record<string, string | number> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => typeof entry === 'string' || typeof entry === 'number')
+  );
+};
+
 interface ProjectRecord {
   title?: string;
   thumbnail?: string | null;
@@ -39,15 +70,16 @@ export default function ProjectDetail({ project }: { project: ProjectRecord; pro
   const title = resolveLocalizedField(project, 'title', lang, 'Untitled Project');
   const description = resolveLocalizedField(project, 'description', lang, '');
   const longDescription = resolveLocalizedField(project, 'long_description', lang, text.projectDetail.noDetail);
+  const longDescriptionHtml = toNarrativeHtml(longDescription);
   const category = resolveLocalizedField(project, 'category', lang, text.projectDetail.portfolio);
-  const gallery = parseFlexibleJson<string[]>(project.gallery, []);
-  const techStackRaw = parseFlexibleJson<unknown[]>(project.tech_stack, []);
-  const stats = parseFlexibleJson<Record<string, string | number>>(project.stats, {});
+  const gallery = asStringArray(parseFlexibleJson<unknown>(project.gallery, []));
+  const techStackRaw = asStringArray(parseFlexibleJson<unknown>(project.tech_stack, []));
+  const stats = asStatsObject(parseFlexibleJson<unknown>(project.stats, {}));
   const createdYear = project.created_at ? new Date(project.created_at).getFullYear() : null;
   const techStack =
     resolveLocalizedArrayField(project, 'tech_stack', lang).length > 0
       ? resolveLocalizedArrayField(project, 'tech_stack', lang)
-      : techStackRaw.map((entry) => (typeof entry === 'string' ? entry : '')).filter(Boolean);
+      : techStackRaw;
 
   return (
     <div className="animate-fade-in">
@@ -93,9 +125,10 @@ export default function ProjectDetail({ project }: { project: ProjectRecord; pro
               </p>
             </header>
 
-            <div className="space-y-8 font-body text-slate-300 leading-relaxed text-base sm:text-lg whitespace-pre-line">
-              {longDescription}
-            </div>
+            <div
+              className="space-y-8 font-body text-slate-300 leading-relaxed text-base sm:text-lg [&_a]:text-primary [&_a]:underline [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_li]:ml-6 [&_ol]:my-4 [&_ol]:list-decimal [&_p]:mb-5 [&_ul]:my-4 [&_ul]:list-disc"
+              dangerouslySetInnerHTML={{ __html: longDescriptionHtml }}
+            />
 
             {/* Call to Action */}
             <div className="mt-12 flex flex-wrap gap-6 items-center">

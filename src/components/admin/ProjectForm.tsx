@@ -3,12 +3,25 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ImageUploader from './ImageUploader';
+import RichTextEditor from './RichTextEditor';
 import toast from 'react-hot-toast';
 import AppIcon from '@/components/ui/AppIcon';
 
 interface TechStackOption {
   name: string;
 }
+
+const safeParseJson = <T,>(value: unknown, fallback: T): T => {
+  if (value == null) return fallback;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return fallback;
+    }
+  }
+  return value as T;
+};
 
 const projectCategoryOptions = [
   'Product Design',
@@ -82,9 +95,9 @@ export default function ProjectForm({ initialData, id }: { initialData?: any, id
         live_url: initialData.live_url || '',
         repo_url: initialData.repo_url || '',
         visibility: initialData.visibility || 'public',
-        tags: JSON.parse(initialData.tags || '[]'),
-        tech_stack: JSON.parse(initialData.tech_stack || '[]'),
-        stats: JSON.parse(initialData.stats || '{}'),
+        tags: safeParseJson<string[]>(initialData.tags, []),
+        tech_stack: safeParseJson<string[]>(initialData.tech_stack, []),
+        stats: safeParseJson<Record<string, string>>(initialData.stats, {}),
         sort_order: initialData.sort_order || 0,
       };
       setFormData(normalizedData);
@@ -273,24 +286,20 @@ export default function ProjectForm({ initialData, id }: { initialData?: any, id
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Detailed Narrative (EN)</label>
-                <textarea 
-                  className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-xl p-4 focus:ring-primary focus:ring-2 outline-none resize-none" 
-                  rows={10}
+                <RichTextEditor
+                  label="Detailed Narrative (EN)"
                   placeholder="Describe the challenge, solution, and results..."
                   value={formData.long_description_en}
-                  onChange={(e) => setFormData({...formData, long_description_en: e.target.value})}
-                ></textarea>
+                  onChange={(nextValue) => setFormData({ ...formData, long_description_en: nextValue })}
+                />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Detailed Narrative (ID)</label>
-                <textarea 
-                  className="w-full bg-surface-container-lowest border-none ring-1 ring-outline-variant/20 rounded-xl p-4 focus:ring-primary focus:ring-2 outline-none resize-none" 
-                  rows={10}
+                <RichTextEditor
+                  label="Detailed Narrative (ID)"
                   placeholder="Jelaskan tantangan, solusi, dan hasil..."
                   value={formData.long_description_id}
-                  onChange={(e) => setFormData({...formData, long_description_id: e.target.value})}
-                ></textarea>
+                  onChange={(nextValue) => setFormData({ ...formData, long_description_id: nextValue })}
+                />
               </div>
             </div>
           </section>
