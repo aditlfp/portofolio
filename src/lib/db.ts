@@ -32,35 +32,31 @@ const validateDbProvider = (): ProviderName => {
     VERCEL_ENV: process.env.VERCEL_ENV
   });
 
-  // Special handling for Vercel production
-  if (isVercel && isProduction && provider === 'sqlite') {
-    console.warn('⚠️  SQLite detected in Vercel production. This will fail!');
-    console.warn('💡 Please set DB_PROVIDER=mongodb or DB_PROVIDER=supabase in Vercel dashboard.');
-  }
+  if (!['sqlite', 'mongodb', 'supabase'].includes(provider)) {
     console.warn(`❌ Invalid DB_PROVIDER: ${provider}. Defaulting to sqlite.`);
     return 'sqlite';
   }
 
-  // Validate provider-specific configuration
+  if (isVercel && isProduction && provider === 'sqlite') {
+    console.warn('⚠️ SQLite detected in Vercel production.');
+  }
+
   if (provider === 'mongodb') {
-    if (!process.env.MONGODB_URI || process.env.MONGODB_URI.trim() === '') {
-      console.warn('❌ MONGODB_URI not set or empty for MongoDB provider. Defaulting to sqlite.');
+    if (!process.env.MONGODB_URI) {
+      console.warn('❌ MONGODB_URI not set. Defaulting to sqlite.');
       return 'sqlite';
     }
-    console.log('✅ MongoDB provider selected and configured');
     return 'mongodb';
   }
 
   if (provider === 'supabase') {
     if (!process.env.SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_ANON_KEY)) {
-      console.warn('❌ SUPABASE_URL or SUPABASE keys not set. Defaulting to sqlite.');
+      console.warn('❌ Supabase config missing. Defaulting to sqlite.');
       return 'sqlite';
     }
-    console.log('✅ Supabase provider selected and configured');
     return 'supabase';
   }
 
-  console.log('✅ SQLite provider selected (default)');
   return 'sqlite';
 };
 
