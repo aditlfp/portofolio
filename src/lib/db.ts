@@ -61,15 +61,6 @@ const validateDbProvider = (): ProviderName => {
 };
 
 const providerName = validateDbProvider();
-if (providerName == 'mongodb') {
-  createMongoProvider();
-} else if (providerName == 'supabase') {
-  createSupabaseProvider();
-} else {
-  createSqliteProvider();
-}
-
-console.log("FINALIZE PROVIDER SELECT: ", providerName);
 
 function parseJson<T>(value: any, fallback: T): T {
   if (value == null) return fallback;
@@ -543,7 +534,7 @@ const createSqliteProvider = (() => {
     countCertificates,
     prepare: (sql: string) => db.prepare(sql),
   };
-})();
+});
 
 const createMongoProvider = (() => {
   console.log('🔧 Initializing MongoDB provider...');
@@ -936,7 +927,7 @@ const createMongoProvider = (() => {
     countProjects,
     countCertificates,
   };
-})();
+});
 
 const createSupabaseProvider = (() => {
   const url = process.env.SUPABASE_URL;
@@ -1214,8 +1205,16 @@ const createSupabaseProvider = (() => {
     countProjects,
     countCertificates,
   };
-})();
+});
 
+
+if (providerName == 'mongodb') {
+  createMongoProvider();
+} else if (providerName == 'supabase') {
+  createSupabaseProvider();
+} else {
+  createSqliteProvider();
+}
 
 console.log(`🚀 Final database provider: ${providerName}`);
 console.log(`📊 Database provider type: ${provider.type}`);
