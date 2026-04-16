@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import path from "path";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -17,6 +16,11 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'i.ibb.co',
+      },
+      {
+        protocol: 'https',
+        hostname: '29u63gnblbqldkwg.public.blob.vercel-storage.com',
+        pathname: '/img/**',
       },
     ],
   },
