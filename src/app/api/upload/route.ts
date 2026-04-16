@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
-import fs from 'fs';
-import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
 
 export async function POST(request: Request) {
   try {
@@ -16,24 +15,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
+    const ext = path.extname(file.name);
+    const filename = `${uuidv4()}${ext}`;
+
+    // ── Vercel / production: use Vercel Blob ──────────────────────────────
+    if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+      const { put } = await import('@vercel/blob');
+
+      const blob = await put(`img/${filename}`, file, {
+        access: 'public',
+        contentType: file.type,
+      });
+
+      return NextResponse.json({ success: true, url: blob.url });
+    }
+
+    // ── Local development: write to public/img/ ───────────────────────────
+    const fs = await import('fs');
+    const { join } = await import('path');
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const ext = path.extname(file.name);
-    const filename = `${uuidv4()}${ext}`;
-    const uploadDir = path.join(process.cwd(), 'public', 'img');
-
+    const uploadDir = join(process.cwd(), 'public', 'img');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    const filePath = path.join(uploadDir, filename);
-    fs.writeFileSync(filePath, buffer);
+    fs.writeFileSync(join(uploadDir, filename), buffer);
 
-    return NextResponse.json({ 
-      success: true, 
-      url: `/img/${filename}` 
-    });
+    return NextResponse.json({ success: true, url: `/img/${filename}` });
+
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
