@@ -61,16 +61,15 @@ const validateDbProvider = (): ProviderName => {
 };
 
 const providerName = validateDbProvider();
-let provider;
 if (providerName == 'mongodb') {
-  provider = createMongoProvider();
+  createMongoProvider();
 } else if (providerName == 'supabase') {
-  provider = createSupabaseProvider();
+  createSupabaseProvider();
 } else {
-  provider = createSqliteProvider();
+  createSqliteProvider();
 }
 
-console.log("FINALIZE PROVIDER SELECT: ", provider, "AND", providerName);
+console.log("FINALIZE PROVIDER SELECT: ", providerName);
 
 function parseJson<T>(value: any, fallback: T): T {
   if (value == null) return fallback;
