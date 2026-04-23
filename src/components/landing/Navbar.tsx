@@ -43,8 +43,10 @@ export default function Navbar({ profile }: { profile: NavbarProfile | null | un
         </div>
 
         <div className="hidden md:flex items-center gap-x-3 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl">
-          <Link href="#hero" className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.about}</Link>
+          <Link href="#about" className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.about}</Link>
           <Link href="#projects" className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.projects}</Link>
+          <Link href="#tech-stack" className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.skills}</Link>
+          <Link href="#experience" className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.experience}</Link>
           <Link href="#contact" className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.contact}</Link>
           
           <div className="relative inline-flex items-center gap-0 rounded-full border border-white/15 bg-white/[0.06] p-1 backdrop-blur-sm">
@@ -106,8 +108,10 @@ export default function Navbar({ profile }: { profile: NavbarProfile | null | un
               </button>
             </div>
             <div className="flex flex-col gap-2">
-              <Link href="#hero" onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.about}</Link>
+              <Link href="#about" onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.about}</Link>
               <Link href="#projects" onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.projects}</Link>
+              <Link href="#tech-stack" onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.skills}</Link>
+              <Link href="#experience" onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.experience}</Link>
               <Link href="#contact" onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.contact}</Link>
             </div>
             <div className="rounded-2xl border border-white/15 bg-white/[0.06] p-2 backdrop-blur-xl">

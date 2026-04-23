@@ -14,7 +14,6 @@ interface HeroProfile {
 export default function HeroSection({ profile }: { profile: HeroProfile | null | undefined }) {
   const { lang, text } = useLandingI18n();
   const profileName = resolveLocalizedField(profile, 'name', lang, 'Professional');
-  const profileBio = lang === 'id' && !profile?.bio_id ? text.hero.fallbackBio : resolveLocalizedField(profile, 'bio', lang, text.hero.fallbackBio);
   const yearsExperience = resolveLocalizedField(profile, 'years_experience', lang, '8+ Years');
 
   return (
@@ -28,9 +27,6 @@ export default function HeroSection({ profile }: { profile: HeroProfile | null |
             <h1 className="text-[42px] leading-[0.94] sm:text-5xl md:text-7xl font-headline font-extrabold tracking-tight text-on-background">
               {text.hero.title}
             </h1>
-            <p className="text-sm sm:text-lg text-on-surface-variant max-w-xl leading-relaxed break-words">
-              {profileBio}
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-6">
@@ -53,18 +49,29 @@ export default function HeroSection({ profile }: { profile: HeroProfile | null |
 
         <div className="col-span-12 lg:col-span-5">
           <div className="relative max-w-md mx-auto lg:max-w-none">
-            <div className="aspect-square w-full rounded-3xl overflow-hidden shadow-2xl ring-1 ring-outline-variant/20 relative">
+            <div className="aspect-square w-full relative">
+              <svg
+                viewBox="0 0 200 200"
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 h-[118%] w-[118%] -translate-x-1/2 -translate-y-1/2 text-primary/55"
+              >
+                <path
+                  fill="#666de0"
+                  d="M65.2,-51.1C79.1,-34.6,81.1,-7.8,75.1,16.7C69.2,41.1,55.2,63.3,35.3,72.5C15.5,81.7,-10.1,78,-31.9,67.1C-53.8,56.3,-71.8,38.4,-76.3,17.7C-80.8,-3.1,-71.9,-26.6,-56.9,-43.4C-41.9,-60.1,-21,-70.1,2.4,-72C25.7,-73.9,51.4,-67.6,65.2,-51.1Z"
+                  transform="translate(100 100)"
+                />
+              </svg>
               <Image
                 src={profile?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1000&auto=format&fit=crop'}
                 alt={`${profileName} Portrait`}
                 fill
-                className="object-cover"
+                className="object-contain object-bottom p-3 sm:p-4"
                 sizes="(max-width: 768px) 100vw, 500px"
                 fetchPriority="high"
                 priority
               />
             </div>
-            <div className="absolute -bottom-0 left-2 sm:-bottom-6 sm:-left-6 bg-surface-container-high mb-2 sm:mb-0 p-3 sm:p-6 rounded-2xl shadow-xl shadow-blue-500/10 ring-1 ring-outline-variant/10 z-10">
+            <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 bg-surface-container-high p-3 sm:p-6 rounded-2xl shadow-xl shadow-blue-500/10 ring-1 ring-outline-variant/10 z-40">
               <div className="flex items-center gap-2 sm:gap-4">
                 <div className="p-2 sm:p-3 bg-primary-container/20 rounded-lg">
                   <AppIcon name="sparkles" className="text-primary" />

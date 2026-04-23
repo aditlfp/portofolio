@@ -9,6 +9,7 @@ export default function Header() {
   const getPageTitle = () => {
     if (pathname === '/admin') return 'Dashboard';
     if (pathname.includes('/projects')) return 'Projects';
+    if (pathname.includes('/experience')) return 'Experience';
     if (pathname.includes('/sections')) return 'Layout Editor';
     if (pathname.includes('/certificates')) return 'Certificates';
     if (pathname.includes('/tech-stack')) return 'Tech Stack';

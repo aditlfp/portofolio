@@ -12,6 +12,8 @@ type LandingDictionary = {
     about: string;
     portfolio: string;
     projects: string;
+    skills: string;
+    experience: string;
     contact: string;
     hireMe: string;
     navigation: string;
@@ -27,9 +29,19 @@ type LandingDictionary = {
     expert: string;
     experience: string;
   };
+  about: {
+    kicker: string;
+    title: string;
+    locationLabel: string;
+  };
   tech: {
     title: string;
     desc: string;
+    empty: string;
+  };
+  experience: {
+    kicker: string;
+    title: string;
     empty: string;
   };
   projects: {
@@ -87,6 +99,8 @@ const dictionary: Record<LandingLang, LandingDictionary> = {
       about: 'About',
       portfolio: 'Portfolio',
       projects: 'Projects',
+      skills: 'Skills',
+      experience: 'Experience',
       contact: 'Contact',
       hireMe: 'Hire Me',
       navigation: 'Navigation',
@@ -103,6 +117,11 @@ const dictionary: Record<LandingLang, LandingDictionary> = {
       expert: 'Top Rated Expert',
       experience: 'Experience',
     },
+    about: {
+      kicker: 'Context',
+      title: 'About',
+      locationLabel: 'Location',
+    },
     tech: {
       title: 'Technological Ecosystem',
       desc: 'My toolkit is curated for performance, scalability, and aesthetic excellence.',
@@ -111,6 +130,11 @@ const dictionary: Record<LandingLang, LandingDictionary> = {
     projects: {
       title: 'Selected Works',
       empty: 'No projects added yet. Admin panel is ready for CRUD.',
+    },
+    experience: {
+      kicker: 'Credibility',
+      title: 'Professional Experience',
+      empty: 'No experience items added yet.',
     },
     certs: {
       title: 'Accredited Precision',
@@ -156,6 +180,8 @@ const dictionary: Record<LandingLang, LandingDictionary> = {
       about: 'Tentang',
       portfolio: 'Portofolio',
       projects: 'Proyek',
+      skills: 'Keahlian',
+      experience: 'Pengalaman',
       contact: 'Kontak',
       hireMe: 'Hire Me',
       navigation: 'Navigasi',
@@ -172,6 +198,11 @@ const dictionary: Record<LandingLang, LandingDictionary> = {
       expert: 'Expert Terbaik',
       experience: 'Pengalaman',
     },
+    about: {
+      kicker: 'Konteks',
+      title: 'Tentang',
+      locationLabel: 'Lokasi',
+    },
     tech: {
       title: 'Ekosistem Teknologi',
       desc: 'Toolkit saya dikurasi untuk performa, skalabilitas, dan kualitas estetika.',
@@ -180,6 +211,11 @@ const dictionary: Record<LandingLang, LandingDictionary> = {
     projects: {
       title: 'Karya Pilihan',
       empty: 'Belum ada proyek. Panel admin sudah siap untuk CRUD.',
+    },
+    experience: {
+      kicker: 'Kredibilitas',
+      title: 'Pengalaman Profesional',
+      empty: 'Belum ada item pengalaman.',
     },
     certs: {
       title: 'Akurasi Tersertifikasi',
@@ -305,7 +341,7 @@ export const setStoredLandingLang = (lang: LandingLang) => {
 };
 
 export const useLandingI18n = () => {
-  const lang = useSyncExternalStore(
+  const lang = useSyncExternalStore<LandingLang>(
     (onStoreChange) => {
       if (typeof window === 'undefined') return () => {};
       const listener = () => onStoreChange();

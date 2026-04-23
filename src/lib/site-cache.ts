@@ -5,6 +5,7 @@ import {
   getProfile,
   getProjectByIdOrSlug,
   getProjects,
+  getExperience,
   getSections,
   getSettings,
   getTechStack,
@@ -39,15 +40,16 @@ export async function getCachedHomePageData() {
   cacheLife('hours');
   cacheTag(PUBLIC_CONTENT_TAG, HOME_PAGE_TAG, PROJECTS_TAG);
 
-  const [profile, sections, techStack, projects, certificates] = await Promise.all([
+  const [profile, sections, techStack, projects, experience, certificates] = await Promise.all([
     getProfile(),
     getSections(),
     getTechStack(),
     getProjects('public'),
+    getExperience(),
     getCertificates(),
   ]);
 
-  return { profile, sections, techStack, projects, certificates };
+  return { profile, sections, techStack, projects, experience, certificates };
 }
 
 export async function getCachedProjectPageData(slug: string) {

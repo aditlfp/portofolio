@@ -22,9 +22,11 @@ import { CSS } from '@dnd-kit/utilities';
 import toast from 'react-hot-toast';
 
 import HeroSection from '@/components/landing/HeroSection';
+import AboutSection from '@/components/landing/AboutSection';
 import TechStackSection from '@/components/landing/TechStackSection';
 import ProjectsSection from '@/components/landing/ProjectsSection';
 import CertificatesSection from '@/components/landing/CertificatesSection';
+import ExperienceSection from '@/components/landing/ExperienceSection';
 import ContactSection from '@/components/landing/ContactSection';
 import CustomBuilderSection from '@/components/landing/CustomBuilderSection';
 import WidgetEditor from '@/components/admin/WidgetEditor';
@@ -39,10 +41,11 @@ interface Section {
 }
 
 interface LandingData {
-  profile: any;
-  techStack: any[];
-  projects: any[];
-  certificates: any[];
+  profile: Record<string, unknown> | null;
+  techStack: Record<string, unknown>[];
+  projects: Record<string, unknown>[];
+  certificates: Record<string, unknown>[];
+  experience: Record<string, unknown>[];
 }
 
 function SortableItem({ section, onToggleVisibility, data, isActiveEditor, setIsActiveEditor, updateSectionConfig }: { 
@@ -74,8 +77,10 @@ function SortableItem({ section, onToggleVisibility, data, isActiveEditor, setIs
     }
     switch(section.id) {
       case 'hero': return <HeroSection profile={data.profile} />;
+      case 'about': return <div className="py-8 bg-surface"><AboutSection profile={data.profile} /></div>;
       case 'tech-stack': return <div className="py-8 bg-surface"><TechStackSection techStack={data.techStack} /></div>;
       case 'projects': return <div className="py-8 bg-surface"><ProjectsSection projects={data.projects} /></div>;
+      case 'experience': return <div className="py-8 bg-surface"><ExperienceSection experience={data.experience} /></div>;
       case 'certificates': return <div className="py-8 bg-surface"><CertificatesSection certificates={data.certificates} /></div>;
       case 'contact': return <div className="py-8 bg-surface"><ContactSection profile={data.profile} /></div>;
       default: return null;

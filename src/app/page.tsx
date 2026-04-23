@@ -1,8 +1,9 @@
 import Navbar from '@/components/landing/Navbar';
 import HeroSection from '@/components/landing/HeroSection';
+import AboutSection from '@/components/landing/AboutSection';
 import TechStackSection from '@/components/landing/TechStackSection';
 import ProjectsSection from '@/components/landing/ProjectsSection';
-import CertificatesSection from '@/components/landing/CertificatesSection';
+import ExperienceSection from '@/components/landing/ExperienceSection';
 import ContactSection from '@/components/landing/ContactSection';
 import CustomBuilderSection from '@/components/landing/CustomBuilderSection';
 import Footer from '@/components/landing/Footer';
@@ -38,13 +39,14 @@ const getSectionBoundaryColor = (sectionId: string): string => {
 };
 
 export default async function Home() {
-  const { profile, sections, techStack, projects, certificates } = await getCachedHomePageData();
+  const { profile, sections, techStack, projects, experience } = await getCachedHomePageData();
 
   const sectionMap: Record<string, (key: string) => React.ReactNode> = {
     'hero': (key) => <HeroSection key={key} profile={profile} />,
-    'tech-stack': (key) => <TechStackSection key={key} techStack={techStack} />,
     'projects': (key) => <ProjectsSection key={key} projects={projects} />,
-    'certificates': (key) => <CertificatesSection key={key} certificates={certificates} />,
+    'about': (key) => <AboutSection key={key} profile={profile} />,
+    'tech-stack': (key) => <TechStackSection key={key} techStack={techStack} />,
+    'experience': (key) => <ExperienceSection key={key} experience={experience} />,
     'contact': (key) => <ContactSection key={key} profile={profile} />
   };
 

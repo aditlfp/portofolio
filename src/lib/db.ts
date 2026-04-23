@@ -134,6 +134,82 @@ function normalizeContact(contact: any) {
   };
 }
 
+const REQUIRED_SECTIONS = [
+  { id: 'hero', label: 'Hero' },
+  { id: 'projects', label: 'Projects' },
+  { id: 'about', label: 'About' },
+  { id: 'tech-stack', label: 'Tech Stack' },
+  { id: 'experience', label: 'Experience' },
+  { id: 'contact', label: 'Contact' },
+] as const;
+
+const REQUIRED_SECTION_ID_SET = new Set(REQUIRED_SECTIONS.map((section) => section.id));
+const LEGACY_SECTION_ID_SET = new Set(['certificates']);
+
+function reconcileSections(items: any[]) {
+  const normalizedItems = (items || []).map(normalizeSection);
+  const byId = new Map<string, any>();
+
+  for (const item of normalizedItems) {
+    if (!item?.id || byId.has(item.id)) continue;
+    byId.set(item.id, item);
+  }
+
+  const required = REQUIRED_SECTIONS.map((section, index) => {
+    const existing = byId.get(section.id);
+    return {
+      id: section.id,
+      label: existing?.label || section.label,
+      sort_order: index,
+      visible: existing?.visible ?? true,
+      config: existing?.config || {},
+    };
+  });
+
+  const customCandidates = normalizedItems
+    .filter((item) => item?.id && !REQUIRED_SECTION_ID_SET.has(item.id) && !LEGACY_SECTION_ID_SET.has(item.id))
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+  const seen = new Set(required.map((item) => item.id));
+  const custom = customCandidates.flatMap((item, index) => {
+    if (seen.has(item.id)) return [];
+    seen.add(item.id);
+    return {
+      id: item.id,
+      label: item.label || 'Custom Block',
+      sort_order: REQUIRED_SECTIONS.length + index,
+      visible: item.visible ?? true,
+      config: item.config || {},
+    };
+  });
+
+  return [...required, ...custom];
+}
+
+function normalizeExperience(item: any) {
+  if (!item) return null;
+  return {
+    ...item,
+    id: item?.id ?? (item?._id?.toString?.() ?? item?._id),
+    sort_order: Number.isFinite(item?.sort_order) ? item.sort_order : 0,
+    role: item.role ?? item.role_en ?? item.role_id ?? '',
+    role_en: item.role_en ?? item.role ?? '',
+    role_id: item.role_id ?? '',
+    company: item.company ?? item.company_en ?? item.company_id ?? '',
+    company_en: item.company_en ?? item.company ?? '',
+    company_id: item.company_id ?? '',
+    period: item.period ?? item.period_en ?? item.period_id ?? '',
+    period_en: item.period_en ?? item.period ?? '',
+    period_id: item.period_id ?? '',
+    location: item.location ?? item.location_en ?? item.location_id ?? '',
+    location_en: item.location_en ?? item.location ?? '',
+    location_id: item.location_id ?? '',
+    description: item.description ?? item.description_en ?? item.description_id ?? '',
+    description_en: item.description_en ?? item.description ?? '',
+    description_id: item.description_id ?? '',
+  };
+}
+
 const createSqliteProvider = (() => {
   console.log('🔧 Initializing SQLite provider...');
 
@@ -229,6 +305,28 @@ const createSqliteProvider = (() => {
       sort_order INTEGER DEFAULT 0
     );
 
+    CREATE TABLE IF NOT EXISTS experience (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      role TEXT NOT NULL,
+      role_en TEXT,
+      role_id TEXT,
+      company TEXT NOT NULL,
+      company_en TEXT,
+      company_id TEXT,
+      period TEXT,
+      period_en TEXT,
+      period_id TEXT,
+      location TEXT,
+      location_en TEXT,
+      location_id TEXT,
+      description TEXT,
+      description_en TEXT,
+      description_id TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS contacts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -309,13 +407,11 @@ const createSqliteProvider = (() => {
 
     const sectionCount = db.prepare('SELECT count(*) as count FROM sections').get() as { count: number };
     if (sectionCount.count === 0) {
-      const sections = [
-        { id: 'hero', label: 'Hero', sort_order: 0 },
-        { id: 'tech-stack', label: 'Tech Stack', sort_order: 1 },
-        { id: 'projects', label: 'Projects', sort_order: 2 },
-        { id: 'certificates', label: 'Certificates', sort_order: 3 },
-        { id: 'contact', label: 'Contact', sort_order: 4 }
-      ];
+      const sections = REQUIRED_SECTIONS.map((section, index) => ({
+        id: section.id,
+        label: section.label,
+        sort_order: index,
+      }));
       const insert = db.prepare('INSERT INTO sections (id, label, sort_order) VALUES (?, ?, ?)');
       sections.forEach(s => insert.run(s.id, s.label, s.sort_order));
     }
@@ -380,8 +476,12 @@ const createSqliteProvider = (() => {
     );
   };
 
-  const getSections = async () => db.prepare('SELECT * FROM sections ORDER BY sort_order ASC').all().map(normalizeSection);
+  const getSections = async () => {
+    const rows = db.prepare('SELECT * FROM sections ORDER BY sort_order ASC').all();
+    return reconcileSections(rows);
+  };
   const saveSections = async (sections: any[]) => {
+    const reconciledSections = reconcileSections(sections);
     const upsert = db.prepare(`
       INSERT INTO sections (id, label, sort_order, visible, config)
       VALUES (?, ?, ?, ?, ?)
@@ -392,7 +492,7 @@ const createSqliteProvider = (() => {
         config = COALESCE(excluded.config, sections.config)
     `);
     const existingCustom = db.prepare("SELECT id FROM sections WHERE id LIKE 'custom-builder-%'").all() as { id: string }[];
-    const incoming = new Set(sections.map((item) => item.id));
+    const incoming = new Set(reconciledSections.map((item) => item.id));
     const deleteStmt = db.prepare('DELETE FROM sections WHERE id = ?');
     const transaction = db.transaction((items: any[]) => {
       for (const existing of existingCustom) {
@@ -404,7 +504,7 @@ const createSqliteProvider = (() => {
         upsert.run(item.id, item.label || null, item.sort_order, item.visible ? 1 : 0, JSON.stringify(item.config || {}));
       }
     });
-    transaction(sections);
+    transaction(reconciledSections);
   };
 
   const updateSectionById = async (id: string, data: any) => {
@@ -505,6 +605,58 @@ const createSqliteProvider = (() => {
     db.prepare('DELETE FROM certificates WHERE id = ?').run(id);
   };
 
+  const getExperience = async () =>
+    db.prepare('SELECT * FROM experience ORDER BY sort_order ASC, id ASC').all().map(normalizeExperience);
+  const createExperience = async (data: any) => {
+    const result = db.prepare(`
+      INSERT INTO experience (
+        role, role_en, role_id, company, company_en, company_id, period, period_en, period_id,
+        location, location_en, location_id, description, description_en, description_id, sort_order
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      data.role || data.role_en || data.role_id || '',
+      data.role_en || data.role || '',
+      data.role_id || '',
+      data.company || data.company_en || data.company_id || '',
+      data.company_en || data.company || '',
+      data.company_id || '',
+      data.period || data.period_en || data.period_id || '',
+      data.period_en || data.period || '',
+      data.period_id || '',
+      data.location || data.location_en || data.location_id || '',
+      data.location_en || data.location || '',
+      data.location_id || '',
+      data.description || data.description_en || data.description_id || '',
+      data.description_en || data.description || '',
+      data.description_id || '',
+      data.sort_order || 0
+    );
+    return result.lastInsertRowid;
+  };
+  const updateExperience = async (id: string, data: any) => {
+    db.prepare(`
+      UPDATE experience SET
+        role = COALESCE(?, role), role_en = COALESCE(?, role_en), role_id = ?,
+        company = COALESCE(?, company), company_en = COALESCE(?, company_en), company_id = ?,
+        period = COALESCE(?, period), period_en = COALESCE(?, period_en), period_id = ?,
+        location = COALESCE(?, location), location_en = COALESCE(?, location_en), location_id = ?,
+        description = COALESCE(?, description), description_en = COALESCE(?, description_en), description_id = ?,
+        sort_order = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(
+      data.role, data.role_en, data.role_id,
+      data.company, data.company_en, data.company_id,
+      data.period, data.period_en, data.period_id,
+      data.location, data.location_en, data.location_id,
+      data.description, data.description_en, data.description_id,
+      data.sort_order || 0,
+      id
+    );
+  };
+  const deleteExperience = async (id: string) => {
+    db.prepare('DELETE FROM experience WHERE id = ?').run(id);
+  };
+
   const getContacts = async () => db.prepare('SELECT * FROM contacts ORDER BY created_at DESC').all().map(normalizeContact);
   const createContact = async (data: any) => {
     db.prepare('INSERT INTO contacts (name, email, interest, message) VALUES (?, ?, ?, ?)').run(data.name, data.email, data.interest, data.message);
@@ -552,6 +704,10 @@ const createSqliteProvider = (() => {
     createCertificate,
     updateCertificate,
     deleteCertificate,
+    getExperience,
+    createExperience,
+    updateExperience,
+    deleteExperience,
     getContacts,
     createContact,
     markAllContactsRead,
@@ -665,13 +821,13 @@ const createMongoProvider = (() => {
         ),
       ]);
 
-      const baseSections = [
-        { _id: 'hero', label: 'Hero', sort_order: 0, visible: 1, config: '{}' },
-        { _id: 'tech-stack', label: 'Tech Stack', sort_order: 1, visible: 1, config: '{}' },
-        { _id: 'projects', label: 'Projects', sort_order: 2, visible: 1, config: '{}' },
-        { _id: 'certificates', label: 'Certificates', sort_order: 3, visible: 1, config: '{}' },
-        { _id: 'contact', label: 'Contact', sort_order: 4, visible: 1, config: '{}' },
-      ];
+      const baseSections = REQUIRED_SECTIONS.map((section, index) => ({
+        _id: section.id,
+        label: section.label,
+        sort_order: index,
+        visible: 1,
+        config: '{}',
+      }));
 
       await db.collection('sections').bulkWrite(
         baseSections.map((section) => ({
@@ -704,14 +860,16 @@ const createMongoProvider = (() => {
 
   const getSections = async () => {
     const db = await connection();
-    return (await db.collection('sections').find().sort({ sort_order: 1 }).toArray()).map(normalizeSection);
+    const rows = await db.collection('sections').find().sort({ sort_order: 1 }).toArray();
+    return reconcileSections(rows);
   };
 
   const saveSections = async (sections: any[]) => {
+    const reconciledSections = reconcileSections(sections);
     const db = await connection();
     const collection = db.collection('sections');
     const existingCustom = await collection.find({ _id: { $regex: '^custom-builder-' } }).project({ _id: 1 }).toArray();
-    const incomingIds = new Set(sections.map((item) => item.id));
+    const incomingIds = new Set(reconciledSections.map((item) => item.id));
     await Promise.all(
       existingCustom.map((item) => {
         if (!incomingIds.has(item._id)) {
@@ -721,7 +879,7 @@ const createMongoProvider = (() => {
       })
     );
     await Promise.all(
-      sections.map((item) =>
+      reconciledSections.map((item) =>
         collection.updateOne(
           { _id: item.id },
           {
@@ -888,6 +1046,71 @@ const createMongoProvider = (() => {
     await db.collection('certificates').deleteOne({ _id: id });
   };
 
+  const getExperience = async () => {
+    const db = await connection();
+    return (await db.collection('experience').find().sort({ sort_order: 1, created_at: 1 }).toArray()).map(normalizeExperience);
+  };
+
+  const createExperience = async (data: any) => {
+    const db = await connection();
+    const record = {
+      _id: randomUUID(),
+      role: data.role || data.role_en || data.role_id || '',
+      role_en: data.role_en || data.role || '',
+      role_id: data.role_id || '',
+      company: data.company || data.company_en || data.company_id || '',
+      company_en: data.company_en || data.company || '',
+      company_id: data.company_id || '',
+      period: data.period || data.period_en || data.period_id || '',
+      period_en: data.period_en || data.period || '',
+      period_id: data.period_id || '',
+      location: data.location || data.location_en || data.location_id || '',
+      location_en: data.location_en || data.location || '',
+      location_id: data.location_id || '',
+      description: data.description || data.description_en || data.description_id || '',
+      description_en: data.description_en || data.description || '',
+      description_id: data.description_id || '',
+      sort_order: data.sort_order || 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const result = await db.collection('experience').insertOne(record);
+    return result.insertedId.toString();
+  };
+
+  const updateExperience = async (id: string, data: any) => {
+    const db = await connection();
+    await db.collection('experience').updateOne(
+      { _id: id },
+      {
+        $set: {
+          role: data.role || data.role_en || data.role_id || '',
+          role_en: data.role_en || data.role || '',
+          role_id: data.role_id || '',
+          company: data.company || data.company_en || data.company_id || '',
+          company_en: data.company_en || data.company || '',
+          company_id: data.company_id || '',
+          period: data.period || data.period_en || data.period_id || '',
+          period_en: data.period_en || data.period || '',
+          period_id: data.period_id || '',
+          location: data.location || data.location_en || data.location_id || '',
+          location_en: data.location_en || data.location || '',
+          location_id: data.location_id || '',
+          description: data.description || data.description_en || data.description_id || '',
+          description_en: data.description_en || data.description || '',
+          description_id: data.description_id || '',
+          sort_order: data.sort_order || 0,
+          updated_at: new Date().toISOString(),
+        },
+      }
+    );
+  };
+
+  const deleteExperience = async (id: string) => {
+    const db = await connection();
+    await db.collection('experience').deleteOne({ _id: id });
+  };
+
   const getContacts = async () => {
     const db = await connection();
     return (await db.collection('contacts').find().sort({ created_at: -1 }).toArray()).map(normalizeContact);
@@ -963,6 +1186,10 @@ const createMongoProvider = (() => {
     createCertificate,
     updateCertificate,
     deleteCertificate,
+    getExperience,
+    createExperience,
+    updateExperience,
+    deleteExperience,
     getContacts,
     createContact,
     markAllContactsRead,
@@ -1041,13 +1268,29 @@ const createSupabaseProvider = (() => {
 
   const getSections = async () => {
     const { data } = await ensureSuccess<any[]>(client.from('sections').select('*').order('sort_order', { ascending: true }));
-    return data.map(normalizeSection);
+    return reconcileSections(data);
   };
 
   const saveSections = async (sections: any[]) => {
+    const reconciledSections = reconcileSections(sections);
+    const existingCustom = await ensureSuccess<any[]>(
+      client.from('sections').select('id').like('id', 'custom-builder-%')
+    );
+    const incomingCustom = new Set(
+      reconciledSections.filter((item) => String(item.id).startsWith('custom-builder-')).map((item) => item.id)
+    );
+    await Promise.all(
+      existingCustom.map((item) => {
+        if (!incomingCustom.has(item.id)) {
+          return ensureSuccess(client.from('sections').delete().eq('id', item.id));
+        }
+        return Promise.resolve();
+      })
+    );
+
     await ensureSuccess(
       client.from('sections').upsert(
-        sections.map((item) => ({
+        reconciledSections.map((item) => ({
           id: item.id,
           label: item.label,
           sort_order: item.sort_order,
@@ -1182,6 +1425,65 @@ const createSupabaseProvider = (() => {
     await ensureSuccess(client.from('certificates').delete().eq('id', id));
   };
 
+  const getExperience = async () => {
+    const { data } = await ensureSuccess<any[]>(client.from('experience').select('*').order('sort_order', { ascending: true }));
+    return data.map(normalizeExperience);
+  };
+
+  const createExperience = async (data: any) => {
+    const row = {
+      id: randomUUID(),
+      role: data.role || data.role_en || data.role_id || '',
+      role_en: data.role_en || data.role || '',
+      role_id: data.role_id || '',
+      company: data.company || data.company_en || data.company_id || '',
+      company_en: data.company_en || data.company || '',
+      company_id: data.company_id || '',
+      period: data.period || data.period_en || data.period_id || '',
+      period_en: data.period_en || data.period || '',
+      period_id: data.period_id || '',
+      location: data.location || data.location_en || data.location_id || '',
+      location_en: data.location_en || data.location || '',
+      location_id: data.location_id || '',
+      description: data.description || data.description_en || data.description_id || '',
+      description_en: data.description_en || data.description || '',
+      description_id: data.description_id || '',
+      sort_order: data.sort_order || 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    await ensureSuccess(client.from('experience').insert([row]));
+    return row.id;
+  };
+
+  const updateExperience = async (id: string, data: any) => {
+    await ensureSuccess(
+      client.from('experience').update({
+        role: data.role || data.role_en || data.role_id || '',
+        role_en: data.role_en || data.role || '',
+        role_id: data.role_id || '',
+        company: data.company || data.company_en || data.company_id || '',
+        company_en: data.company_en || data.company || '',
+        company_id: data.company_id || '',
+        period: data.period || data.period_en || data.period_id || '',
+        period_en: data.period_en || data.period || '',
+        period_id: data.period_id || '',
+        location: data.location || data.location_en || data.location_id || '',
+        location_en: data.location_en || data.location || '',
+        location_id: data.location_id || '',
+        description: data.description || data.description_en || data.description_id || '',
+        description_en: data.description_en || data.description || '',
+        description_id: data.description_id || '',
+        sort_order: data.sort_order || 0,
+        updated_at: new Date().toISOString(),
+      }).eq('id', id)
+    );
+  };
+
+  const deleteExperience = async (id: string) => {
+    await ensureSuccess(client.from('experience').delete().eq('id', id));
+  };
+
   const getContacts = async () => {
     const { data } = await ensureSuccess<any[]>(client.from('contacts').select('*').order('created_at', { ascending: false }));
     return data.map(normalizeContact);
@@ -1257,6 +1559,10 @@ const createSupabaseProvider = (() => {
     createCertificate,
     updateCertificate,
     deleteCertificate,
+    getExperience,
+    createExperience,
+    updateExperience,
+    deleteExperience,
     getContacts,
     createContact,
     markAllContactsRead,
@@ -1300,6 +1606,10 @@ export const getCertificates = async () => provider.getCertificates();
 export const createCertificate = async (data: any) => provider.createCertificate(data);
 export const updateCertificate = async (id: string, data: any) => provider.updateCertificate(id, data);
 export const deleteCertificate = async (id: string) => provider.deleteCertificate(id);
+export const getExperience = async () => provider.getExperience();
+export const createExperience = async (data: any) => provider.createExperience(data);
+export const updateExperience = async (id: string, data: any) => provider.updateExperience(id, data);
+export const deleteExperience = async (id: string) => provider.deleteExperience(id);
 export const getContacts = async () => provider.getContacts();
 export const createContact = async (data: any) => provider.createContact(data);
 export const markAllContactsRead = async () => provider.markAllContactsRead();
@@ -1332,6 +1642,10 @@ const db = {
   createCertificate,
   updateCertificate,
   deleteCertificate,
+  getExperience,
+  createExperience,
+  updateExperience,
+  deleteExperience,
   getContacts,
   createContact,
   markAllContactsRead,

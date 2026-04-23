@@ -39,6 +39,7 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIsO
   const navItems = [
     { id: 'dashboard', label: 'Overview', icon: 'dashboard', href: '/admin' },
     { id: 'projects', label: 'Projects', icon: 'folder', href: '/admin/projects' },
+    { id: 'experience', label: 'Experience', icon: 'notes', href: '/admin/experience' },
     { id: 'sections', label: 'Layout Editor', icon: 'layers', href: '/admin/sections' },
     { id: 'certificates', label: 'Certificates', icon: 'certificate', href: '/admin/certificates' },
     { id: 'tech-stack', label: 'Tech Stack', icon: 'terminal', href: '/admin/tech-stack' },
