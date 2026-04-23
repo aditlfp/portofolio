@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import AppIcon from '@/components/ui/AppIcon';
@@ -73,6 +73,7 @@ export default function ProjectDetail({ project }: { project: ProjectRecord; pro
   const longDescriptionHtml = toNarrativeHtml(longDescription);
   const category = resolveLocalizedField(project, 'category', lang, text.projectDetail.portfolio);
   const gallery = asStringArray(parseFlexibleJson<unknown>(project.gallery, []));
+  const [activeSlide, setActiveSlide] = useState(0);
   const techStackRaw = asStringArray(parseFlexibleJson<unknown>(project.tech_stack, []));
   const stats = asStatsObject(parseFlexibleJson<unknown>(project.stats, {}));
   const createdYear = project.created_at ? new Date(project.created_at).getFullYear() : null;
@@ -80,6 +81,22 @@ export default function ProjectDetail({ project }: { project: ProjectRecord; pro
     resolveLocalizedArrayField(project, 'tech_stack', lang).length > 0
       ? resolveLocalizedArrayField(project, 'tech_stack', lang)
       : techStackRaw;
+  const carouselImages = useMemo(() => {
+    const candidates = [
+      ...gallery,
+      typeof project.hero_image === 'string' ? project.hero_image : '',
+      typeof project.thumbnail === 'string' ? project.thumbnail : '',
+    ].filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+    return Array.from(new Set(candidates));
+  }, [gallery, project.hero_image, project.thumbnail]);
+
+  const nextSlide = () => {
+    setActiveSlide((prev) => (prev + 1) % carouselImages.length);
+  };
+
+  const prevSlide = () => {
+    setActiveSlide((prev) => (prev - 1 + carouselImages.length) % carouselImages.length);
+  };
 
   return (
     <div className="animate-fade-in">
@@ -124,6 +141,57 @@ export default function ProjectDetail({ project }: { project: ProjectRecord; pro
                 {description}
               </p>
             </header>
+
+            {carouselImages.length > 0 && (
+              <div className="mb-10 rounded-2xl bg-surface-container-low p-3 sm:p-4 ring-1 ring-outline-variant/20">
+                <div className="relative overflow-hidden rounded-xl aspect-[16/9] bg-surface-container-lowest">
+                  <Image
+                    src={carouselImages[activeSlide]}
+                    alt={`${title} slide ${activeSlide + 1}`}
+                    fill
+                    className="object-cover"
+                  />
+                  {carouselImages.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={prevSlide}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white backdrop-blur-md hover:bg-black/70"
+                        aria-label="Previous image"
+                      >
+                        <AppIcon name="arrowBack" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={nextSlide}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white backdrop-blur-md hover:bg-black/70"
+                        aria-label="Next image"
+                      >
+                        <AppIcon name="arrowForward" />
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {carouselImages.length > 1 && (
+                  <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                    {carouselImages.map((img, index) => (
+                      <button
+                        key={`${img}-${index}`}
+                        type="button"
+                        onClick={() => setActiveSlide(index)}
+                        className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-md ring-2 transition-all ${
+                          index === activeSlide ? 'ring-primary' : 'ring-transparent'
+                        }`}
+                        aria-label={`Open image ${index + 1}`}
+                      >
+                        <Image src={img} alt={`${title} thumbnail ${index + 1}`} fill className="object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div
               className="space-y-8 font-body text-slate-300 leading-relaxed text-base sm:text-lg [&_a]:text-primary [&_a]:underline [&_blockquote]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-bold [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-bold [&_li]:ml-6 [&_ol]:my-4 [&_ol]:list-decimal [&_p]:mb-5 [&_ul]:my-4 [&_ul]:list-disc"
@@ -186,24 +254,6 @@ export default function ProjectDetail({ project }: { project: ProjectRecord; pro
           </aside>
         </div>
       </article>
-
-      {/* Secondary Imagery / Gallery Section */}
-      {gallery.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {gallery.map((img, i) => (
-              <div key={i} className="rounded-2xl overflow-hidden aspect-[4/3] bg-surface-container-low group relative">
-                <Image 
-                  src={img} 
-                  alt={`${title} gallery ${i}`} 
-                  fill 
-                  className="object-cover transition-transform duration-500 group-hover:scale-110" 
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Scroll Indicator Anchor */}
       <div className="hidden lg:block fixed right-8 top-1/2 -translate-y-1/2 w-[1px] h-32 bg-outline-variant/30">

@@ -56,6 +56,7 @@ export default function ProjectForm({ initialData, id }: { initialData?: any, id
     long_description: '', long_description_en: '', long_description_id: '',
     thumbnail: '',
     hero_image: '',
+    gallery: [] as string[],
     live_url: '',
     repo_url: '',
     visibility: 'public',
@@ -71,6 +72,7 @@ export default function ProjectForm({ initialData, id }: { initialData?: any, id
   const [techStackOptions, setTechStackOptions] = useState<string[]>([]);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [categoryQuery, setCategoryQuery] = useState('');
+  const [galleryUploading, setGalleryUploading] = useState(false);
   const categoryDropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -92,6 +94,7 @@ export default function ProjectForm({ initialData, id }: { initialData?: any, id
         long_description_id: initialData.long_description_id || '',
         thumbnail: initialData.thumbnail || '',
         hero_image: initialData.hero_image || '',
+        gallery: safeParseJson<string[]>(initialData.gallery, []),
         live_url: initialData.live_url || '',
         repo_url: initialData.repo_url || '',
         visibility: initialData.visibility || 'public',
@@ -183,6 +186,53 @@ export default function ProjectForm({ initialData, id }: { initialData?: any, id
      if (label && value) {
        setFormData({ ...formData, stats: { ...formData.stats, [label]: value } });
      }
+  };
+
+  const handleGalleryUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setGalleryUploading(true);
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (const file of Array.from(files)) {
+        const payload = new FormData();
+        payload.append('file', file);
+        const response = await fetch('/api/upload', { method: 'POST', body: payload });
+        const data = await response.json();
+        if (response.ok && data?.url) {
+          uploadedUrls.push(data.url as string);
+        }
+      }
+
+      if (uploadedUrls.length > 0) {
+        const merged = Array.from(new Set([...formData.gallery, ...uploadedUrls]));
+        setFormData({ ...formData, gallery: merged });
+        toast.success(`${uploadedUrls.length} image(s) uploaded`);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to upload gallery images');
+    } finally {
+      event.target.value = '';
+      setGalleryUploading(false);
+    }
+  };
+
+  const removeGalleryImage = (index: number) => {
+    const next = formData.gallery.filter((_, currentIndex) => currentIndex !== index);
+    setFormData({ ...formData, gallery: next });
+  };
+
+  const moveGalleryImage = (index: number, direction: 'left' | 'right') => {
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= formData.gallery.length) return;
+
+    const next = [...formData.gallery];
+    const [item] = next.splice(index, 1);
+    next.splice(targetIndex, 0, item);
+    setFormData({ ...formData, gallery: next });
   };
 
   return (
@@ -309,6 +359,67 @@ export default function ProjectForm({ initialData, id }: { initialData?: any, id
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <ImageUploader label="Front Thumbnail" value={formData.thumbnail} onChange={(url) => setFormData({...formData, thumbnail: url})} />
               <ImageUploader label="Detail Hero Header" value={formData.hero_image} onChange={(url) => setFormData({...formData, hero_image: url})} />
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Project Gallery (Carousel Images)</label>
+                <label className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-on-primary cursor-pointer hover:opacity-90 transition-opacity">
+                  {galleryUploading ? 'Uploading...' : 'Upload Multiple'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleGalleryUpload}
+                    disabled={galleryUploading}
+                  />
+                </label>
+              </div>
+
+              {formData.gallery.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-outline-variant/20 bg-surface-container-lowest p-4 text-xs text-on-surface-variant italic">
+                  No gallery images yet. Upload multiple images for project detail carousel.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {formData.gallery.map((imageUrl, index) => (
+                    <div key={`${imageUrl}-${index}`} className="rounded-xl overflow-hidden bg-surface-container-lowest ring-1 ring-outline-variant/20">
+                      <div className="relative aspect-video">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={imageUrl} alt={`Gallery ${index + 1}`} className="h-full w-full object-cover" />
+                      </div>
+                      <div className="p-2 flex items-center justify-between gap-1">
+                        <span className="text-[10px] font-bold text-on-surface-variant">#{index + 1}</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => moveGalleryImage(index, 'left')}
+                            className="rounded-md bg-surface-container-high px-2 py-1 text-[10px] font-bold"
+                            disabled={index === 0}
+                          >
+                            ←
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveGalleryImage(index, 'right')}
+                            className="rounded-md bg-surface-container-high px-2 py-1 text-[10px] font-bold"
+                            disabled={index === formData.gallery.length - 1}
+                          >
+                            →
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeGalleryImage(index)}
+                            className="rounded-md bg-error/20 px-2 py-1 text-[10px] font-bold text-error"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </section>
         </div>
