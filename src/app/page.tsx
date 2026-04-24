@@ -43,8 +43,8 @@ export default async function Home() {
 
   const sectionMap: Record<string, (key: string) => React.ReactNode> = {
     'hero': (key) => <HeroSection key={key} profile={profile} />,
-    'projects': (key) => <ProjectsSection key={key} projects={projects} />,
     'about': (key) => <AboutSection key={key} profile={profile} />,
+    'projects': (key) => <ProjectsSection key={key} projects={projects} />,
     'tech-stack': (key) => <TechStackSection key={key} techStack={techStack} />,
     'experience': (key) => <ExperienceSection key={key} experience={experience} />,
     'contact': (key) => <ContactSection key={key} profile={profile} />

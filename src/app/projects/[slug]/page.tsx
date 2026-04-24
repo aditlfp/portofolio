@@ -4,7 +4,6 @@ import { connection } from 'next/server';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 import ProjectDetail from '@/components/project/ProjectDetail';
-import LandingLanguageDock from '@/components/landing/LandingLanguageDock';
  
 async function getProject(slug: string) {
   const [project, profile] = await Promise.all([getProjectByIdOrSlug(slug), getProfile()]);
@@ -25,7 +24,6 @@ export default async function ProjectPage({ params }: { params: Params }) {
   return (
     <div className="bg-surface text-on-surface font-body min-h-screen">
       <Navbar profile={profile} />
-      <LandingLanguageDock />
       <main className="pt-24 min-h-screen">
         <ProjectDetail project={project} profile={profile} />
       </main>

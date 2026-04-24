@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import AppIcon from '@/components/ui/AppIcon';
 import { resolveLocalizedField, useLandingI18n } from '@/lib/landing-i18n';
 
@@ -12,8 +13,10 @@ interface NavbarProfile {
 export default function Navbar({ profile }: { profile: NavbarProfile | null | undefined }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
   const { lang, changeLang, text } = useLandingI18n();
   const displayName = resolveLocalizedField(profile as Record<string, unknown>, 'name', lang, 'Executive');
+  const sectionHref = (sectionId: string) => (pathname === '/' ? `#${sectionId}` : `/#${sectionId}`);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -43,11 +46,11 @@ export default function Navbar({ profile }: { profile: NavbarProfile | null | un
         </div>
 
         <div className="hidden md:flex items-center gap-x-3 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl">
-          <Link href="#about" className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.about}</Link>
-          <Link href="#projects" className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.projects}</Link>
-          <Link href="#tech-stack" className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.skills}</Link>
-          <Link href="#experience" className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.experience}</Link>
-          <Link href="#contact" className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.contact}</Link>
+          <Link href={sectionHref('about')} className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.about}</Link>
+          <Link href={sectionHref('projects')} className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.projects}</Link>
+          <Link href={sectionHref('tech-stack')} className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.skills}</Link>
+          <Link href={sectionHref('experience')} className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.experience}</Link>
+          <Link href={sectionHref('contact')} className="glass-nav-link rounded-full px-4 py-2 text-slate-200 font-headline font-bold tracking-tight">{text.nav.contact}</Link>
           
           <div className="relative inline-flex items-center gap-0 rounded-full border border-white/15 bg-white/[0.06] p-1 backdrop-blur-sm">
             <div 
@@ -108,11 +111,11 @@ export default function Navbar({ profile }: { profile: NavbarProfile | null | un
               </button>
             </div>
             <div className="flex flex-col gap-2">
-              <Link href="#about" onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.about}</Link>
-              <Link href="#projects" onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.projects}</Link>
-              <Link href="#tech-stack" onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.skills}</Link>
-              <Link href="#experience" onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.experience}</Link>
-              <Link href="#contact" onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.contact}</Link>
+              <Link href={sectionHref('about')} onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.about}</Link>
+              <Link href={sectionHref('projects')} onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.projects}</Link>
+              <Link href={sectionHref('tech-stack')} onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.skills}</Link>
+              <Link href={sectionHref('experience')} onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.experience}</Link>
+              <Link href={sectionHref('contact')} onClick={() => setIsMenuOpen(false)} className="rounded-xl px-4 py-3 bg-surface-container-high text-on-surface font-bold">{text.nav.contact}</Link>
             </div>
             <div className="rounded-2xl border border-white/15 bg-white/[0.06] p-2 backdrop-blur-xl">
               <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">{text.nav.language}</p>
