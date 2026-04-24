@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { resolveLocalizedField, useLandingI18n } from '@/lib/landing-i18n';
 
 interface ExperienceItem {
@@ -74,6 +74,32 @@ export default function ExperienceSection({ experience }: { experience: Experien
   const { lang, text } = useLandingI18n();
   const activeLang = lang as 'en' | 'id';
   const [selectedExperience, setSelectedExperience] = useState<ExperienceModalData | null>(null);
+
+  useEffect(() => {
+    if (!selectedExperience) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [selectedExperience]);
+
+  useEffect(() => {
+    if (!selectedExperience) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedExperience(null);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedExperience]);
 
   return (
     <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-14 sm:py-20" id="experience">

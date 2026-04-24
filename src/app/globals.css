@@ -66,6 +66,7 @@
 /* ==================== BASE STYLES ==================== */
 * {
   box-sizing: border-box;
+  min-width: 0;
 }
 
 html {
@@ -78,6 +79,33 @@ body {
   color: #e5e2e1;
   font-family: var(--font-inter);
   overflow-x: hidden;
+}
+
+img,
+video,
+canvas,
+svg,
+iframe {
+  max-width: 100%;
+}
+
+img,
+video,
+canvas {
+  height: auto;
+}
+
+input,
+textarea,
+select,
+button {
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+  display: block;
+  overflow-x: auto;
 }
 
 /* Custom Scrollbar (Cross-browser) */
