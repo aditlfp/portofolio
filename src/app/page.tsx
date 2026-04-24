@@ -40,6 +40,25 @@ const getSectionBoundaryColor = (sectionId: string): string => {
 
 export default async function Home() {
   const { profile, sections, techStack, projects, experience } = await getCachedHomePageData();
+  const orderedSections = (() => {
+    const next = [...sections];
+    const aboutIndex = next.findIndex((section: HomeSection) => section?.id === 'about');
+    const projectsIndex = next.findIndex((section: HomeSection) => section?.id === 'projects');
+
+    if (aboutIndex === -1 || projectsIndex === -1 || aboutIndex < projectsIndex) {
+      return next;
+    }
+
+    const [aboutSection] = next.splice(aboutIndex, 1);
+    const nextProjectsIndex = next.findIndex((section: HomeSection) => section?.id === 'projects');
+
+    if (!aboutSection || nextProjectsIndex === -1) {
+      return next;
+    }
+
+    next.splice(nextProjectsIndex, 0, aboutSection);
+    return next;
+  })();
 
   const sectionMap: Record<string, (key: string) => React.ReactNode> = {
     'hero': (key) => <HeroSection key={key} profile={profile} />,
@@ -50,7 +69,7 @@ export default async function Home() {
     'contact': (key) => <ContactSection key={key} profile={profile} />
   };
 
-  const renderableSections: RenderableHomeSection[] = sections.flatMap((section: HomeSection) => {
+  const renderableSections: RenderableHomeSection[] = orderedSections.flatMap((section: HomeSection) => {
     if (!section?.id) return [];
 
     if (section.id.startsWith('custom-builder')) {
