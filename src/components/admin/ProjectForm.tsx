@@ -23,6 +23,20 @@ const safeParseJson = <T,>(value: unknown, fallback: T): T => {
   return value as T;
 };
 
+const normalizeStringArray = (value: unknown): string[] => {
+  const parsed = safeParseJson<unknown>(value, []);
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+};
+
+const normalizeStatsRecord = (value: unknown): Record<string, string> => {
+  const parsed = safeParseJson<unknown>(value, {});
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+  return Object.fromEntries(
+    Object.entries(parsed).map(([key, item]) => [key, typeof item === 'string' ? item : String(item ?? '')])
+  );
+};
+
 const projectCategoryOptions = [
   'Product Design',
   'Web Development',
@@ -94,13 +108,13 @@ export default function ProjectForm({ initialData, id }: { initialData?: any, id
         long_description_id: initialData.long_description_id || '',
         thumbnail: initialData.thumbnail || '',
         hero_image: initialData.hero_image || '',
-        gallery: safeParseJson<string[]>(initialData.gallery, []),
+        gallery: normalizeStringArray(initialData.gallery),
         live_url: initialData.live_url || '',
         repo_url: initialData.repo_url || '',
         visibility: initialData.visibility || 'public',
-        tags: safeParseJson<string[]>(initialData.tags, []),
-        tech_stack: safeParseJson<string[]>(initialData.tech_stack, []),
-        stats: safeParseJson<Record<string, string>>(initialData.stats, {}),
+        tags: normalizeStringArray(initialData.tags),
+        tech_stack: normalizeStringArray(initialData.tech_stack),
+        stats: normalizeStatsRecord(initialData.stats),
         sort_order: initialData.sort_order || 0,
       };
       setFormData(normalizedData);
