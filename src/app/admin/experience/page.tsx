@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
+import RichTextEditor from '@/components/admin/RichTextEditor';
 import AppIcon from '@/components/ui/AppIcon';
 
 interface ExperienceItem {
@@ -39,18 +40,27 @@ const initialForm = {
   sort_order: 0,
 };
 
+const stripHtml = (value: string) => value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
 export default function ExperienceAdminPage() {
   const [items, setItems] = useState<ExperienceItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [orderDirty, setOrderDirty] = useState(false);
+  const [draggedId, setDraggedId] = useState<string | number | null>(null);
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [confirmId, setConfirmId] = useState<string | number | null>(null);
   const [formData, setFormData] = useState(initialForm);
+
+  const applySortOrder = (nextItems: ExperienceItem[]) =>
+    nextItems.map((item, index) => ({ ...item, sort_order: index }));
 
   const fetchItems = () => {
     fetch('/api/experience')
       .then((res) => res.json())
       .then((data) => {
         setItems(Array.isArray(data) ? data : []);
+        setOrderDirty(false);
         setLoading(false);
       })
       .catch(() => {
@@ -128,6 +138,73 @@ export default function ExperienceAdminPage() {
     fetchItems();
   };
 
+  const handleDragStart = (id: string | number) => {
+    setDraggedId(id);
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+  };
+
+  const handleDrop = (targetId: string | number) => {
+    if (draggedId === null || draggedId === targetId) {
+      setDraggedId(null);
+      return;
+    }
+
+    const sourceIndex = items.findIndex((item) => item.id === draggedId);
+    const targetIndex = items.findIndex((item) => item.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) {
+      setDraggedId(null);
+      return;
+    }
+
+    const nextItems = [...items];
+    const [movedItem] = nextItems.splice(sourceIndex, 1);
+    nextItems.splice(targetIndex, 0, movedItem);
+
+    setItems(applySortOrder(nextItems));
+    setOrderDirty(true);
+    setDraggedId(null);
+  };
+
+  const handleSaveOrder = async () => {
+    if (!orderDirty || savingOrder) return;
+    setSavingOrder(true);
+
+    try {
+      for (const item of items) {
+        const payload = {
+          ...item,
+          role: item.role_en || item.role || '',
+          company: item.company_en || item.company || '',
+          period: item.period_en || item.period || '',
+          location: item.location_en || item.location || '',
+          description: item.description_en || item.description || '',
+          sort_order: item.sort_order,
+        };
+
+        const response = await fetch(`/api/experience/${item.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to persist order');
+        }
+      }
+
+      toast.success('Experience order updated');
+      setOrderDirty(false);
+      fetchItems();
+    } catch {
+      toast.error('Failed to save new order');
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
   return (
     <div className="py-8 space-y-12 animate-fade-in">
       <ConfirmDialog
@@ -140,12 +217,32 @@ export default function ExperienceAdminPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
         <div className="lg:col-span-2 space-y-6">
-          <h3 className="font-headline text-xl font-bold border-l-4 border-primary pl-4">Experience Timeline</h3>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="font-headline text-xl font-bold border-l-4 border-primary pl-4">Experience Timeline</h3>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-on-surface-variant">Drag cards to reorder</p>
+              <button
+                type="button"
+                onClick={handleSaveOrder}
+                disabled={!orderDirty || savingOrder}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-primary text-on-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingOrder ? 'Saving...' : 'Save Order'}
+              </button>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {items.map((item) => (
               <article
                 key={item.id}
-                className="p-6 rounded-2xl bg-surface-container-low border border-outline-variant/10 hover:border-primary/30 transition-all"
+                draggable
+                onDragStart={() => handleDragStart(item.id)}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(item.id)}
+                onDragEnd={() => setDraggedId(null)}
+                className={`cursor-grab active:cursor-grabbing p-6 rounded-2xl bg-surface-container-low border transition-all ${
+                  draggedId === item.id ? 'border-primary/50 opacity-60' : 'border-outline-variant/10 hover:border-primary/30'
+                }`}
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="p-3 rounded-xl bg-primary-container/10 text-primary">
@@ -158,8 +255,8 @@ export default function ExperienceAdminPage() {
                 </div>
                 <h4 className="font-bold text-on-surface">{item.role_en || item.role}</h4>
                 <p className="text-sm text-primary font-semibold">{item.company_en || item.company}</p>
-                <p className="text-xs text-on-surface-variant mt-2">{item.period_en || item.period} � {item.location_en || item.location}</p>
-                <p className="text-xs text-on-surface-variant mt-2 line-clamp-3">{item.description_en || item.description}</p>
+                <p className="text-xs text-on-surface-variant mt-2">{item.period_en || item.period} - {item.location_en || item.location}</p>
+                <p className="text-xs text-on-surface-variant mt-2 line-clamp-3">{stripHtml(String(item.description_en || item.description || ''))}</p>
               </article>
             ))}
             {items.length === 0 && !loading && (
@@ -209,14 +306,18 @@ export default function ExperienceAdminPage() {
                 <input className="w-full bg-surface-container-lowest ring-1 ring-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:ring-primary outline-none" value={formData.location_id} onChange={(e) => setFormData({ ...formData, location_id: e.target.value })} />
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Description (EN)</label>
-              <textarea className="w-full min-h-20 bg-surface-container-lowest ring-1 ring-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:ring-primary outline-none" value={formData.description_en} onChange={(e) => setFormData({ ...formData, description_en: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Description (ID)</label>
-              <textarea className="w-full min-h-20 bg-surface-container-lowest ring-1 ring-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:ring-primary outline-none" value={formData.description_id} onChange={(e) => setFormData({ ...formData, description_id: e.target.value })} />
-            </div>
+            <RichTextEditor
+              label="Description (EN)"
+              placeholder="Write experience details in English..."
+              value={formData.description_en}
+              onChange={(nextValue) => setFormData({ ...formData, description_en: nextValue })}
+            />
+            <RichTextEditor
+              label="Description (ID)"
+              placeholder="Tulis detail pengalaman dalam Bahasa Indonesia..."
+              value={formData.description_id}
+              onChange={(nextValue) => setFormData({ ...formData, description_id: nextValue })}
+            />
             <div className="space-y-2">
               <label className="text-xs font-label uppercase font-bold text-on-surface-variant">Sort Order</label>
               <input type="number" className="w-full bg-surface-container-lowest ring-1 ring-outline-variant/20 rounded-xl px-4 py-3 text-sm focus:ring-primary outline-none" value={formData.sort_order} onChange={(e) => setFormData({ ...formData, sort_order: Number.parseInt(e.target.value || '0', 10) || 0 })} />
