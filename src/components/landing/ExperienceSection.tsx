@@ -1,10 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { resolveLocalizedField, useLandingI18n } from '@/lib/landing-i18n';
 
 interface ExperienceItem {
   id?: string | number;
   [key: string]: unknown;
+}
+
+interface ExperienceModalData {
+  role: string;
+  company: string;
+  period: string;
+  location: string;
+  descriptionHtml: string;
 }
 
 const hasHtmlTags = (content: string) => /<\/?[a-z][\s\S]*>/i.test(content);
@@ -37,9 +46,34 @@ const sanitizeHtml = (html: string) =>
     .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
     .replace(/href\s*=\s*("|')\s*javascript:[^"']*("|')/gi, 'href="#"');
 
+const stripTags = (value: string) => value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+const extractHighlights = (descriptionHtml: string, maxItems = 3): string[] => {
+  const listMatches = Array.from(descriptionHtml.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi))
+    .map((match) => stripTags(match[1] || ''))
+    .filter((item) => item.length > 0);
+  if (listMatches.length > 0) return listMatches.slice(0, maxItems);
+
+  const plain = stripTags(descriptionHtml);
+  if (!plain) return [];
+
+  const lineItems = plain
+    .split(/\n+/)
+    .map((line) => line.replace(/^[-*]\s*/, '').trim())
+    .filter((line) => line.length > 0);
+  if (lineItems.length > 1) return lineItems.slice(0, maxItems);
+
+  return plain
+    .split(/(?<=[.!?])\s+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0)
+    .slice(0, maxItems);
+};
+
 export default function ExperienceSection({ experience }: { experience: ExperienceItem[] }) {
   const { lang, text } = useLandingI18n();
   const activeLang = lang as 'en' | 'id';
+  const [selectedExperience, setSelectedExperience] = useState<ExperienceModalData | null>(null);
 
   return (
     <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-14 sm:py-20" id="experience">
@@ -65,6 +99,7 @@ export default function ExperienceSection({ experience }: { experience: Experien
                 const location = resolveLocalizedField(item, 'location', activeLang, '-');
                 const description = resolveLocalizedField(item, 'description', activeLang, '');
                 const descriptionHtml = sanitizeHtml(toNarrativeHtml(description));
+                const highlights = extractHighlights(descriptionHtml, 3);
                 const isRight = index % 2 === 0;
 
                 return (
@@ -84,12 +119,33 @@ export default function ExperienceSection({ experience }: { experience: Experien
                           </span>
                         </div>
                         <h3 className="font-headline text-lg font-bold text-on-surface">{role}</h3>
-                        <p className="mt-1 text-xs font-label uppercase tracking-wider text-on-surface-variant">{location}</p>
+                        <ul className="mt-4 space-y-2 text-sm leading-relaxed text-on-surface-variant list-disc pl-5">
+                          {highlights.length > 0 ? (
+                            highlights.map((highlight, highlightIndex) => (
+                              <li key={`${item.id ?? index}-${highlightIndex}`} className="line-clamp-2">
+                                {highlight}
+                              </li>
+                            ))
+                          ) : (
+                            <li className="list-none italic text-on-surface-variant/80">No highlights yet.</li>
+                          )}
+                        </ul>
                         {descriptionHtml ? (
-                          <div
-                            className="mt-4 text-sm leading-relaxed text-on-surface-variant [&_a]:text-primary [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_h2]:mb-3 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-bold [&_li]:ml-5 [&_ol]:my-3 [&_ol]:list-decimal [&_p]:mb-3 [&_ul]:my-3 [&_ul]:list-disc"
-                            dangerouslySetInnerHTML={{ __html: descriptionHtml }}
-                          />
+                          <button
+                            type="button"
+                            className="mt-4 rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+                            onClick={() =>
+                              setSelectedExperience({
+                                role,
+                                company,
+                                period,
+                                location,
+                                descriptionHtml,
+                              })
+                            }
+                          >
+                            View Details
+                          </button>
                         ) : null}
                       </article>
                     </div>
@@ -108,6 +164,39 @@ export default function ExperienceSection({ experience }: { experience: Experien
           </div>
         )}
       </div>
+
+      {selectedExperience ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 sm:p-6">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/70"
+            aria-label="Close details"
+            onClick={() => setSelectedExperience(null)}
+          />
+          <div className="relative z-10 w-full max-w-3xl rounded-2xl bg-surface-container p-5 sm:p-7 ring-1 ring-outline-variant/20 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-headline text-2xl font-bold text-on-surface">{selectedExperience.role}</h3>
+                <p className="mt-1 text-sm font-semibold text-primary">{selectedExperience.company}</p>
+                <p className="mt-1 text-xs uppercase tracking-wider text-on-surface-variant">
+                  {selectedExperience.period} - {selectedExperience.location}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded-lg bg-surface-container-high px-3 py-2 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container-highest"
+                onClick={() => setSelectedExperience(null)}
+              >
+                Close
+              </button>
+            </div>
+            <div
+              className="max-h-[65vh] overflow-y-auto pr-1 text-sm leading-relaxed text-on-surface-variant [&_a]:text-primary [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/40 [&_blockquote]:pl-4 [&_h2]:mb-3 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-bold [&_li]:ml-5 [&_ol]:my-3 [&_ol]:list-decimal [&_p]:mb-3 [&_ul]:my-3 [&_ul]:list-disc"
+              dangerouslySetInnerHTML={{ __html: selectedExperience.descriptionHtml }}
+            />
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
