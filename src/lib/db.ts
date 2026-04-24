@@ -62,6 +62,17 @@ const validateDbProvider = (): ProviderName => {
 
 const providerName = validateDbProvider();
 
+const getDefaultAdminCredentials = () => {
+  const username = (process.env.DEFAULT_ADMIN_USERNAME || '').trim();
+  const password = process.env.DEFAULT_ADMIN_PASSWORD || '';
+
+  return {
+    username,
+    password,
+    isConfigured: username.length > 0 && password.length > 0,
+  };
+};
+
 function parseJson<T>(value: any, fallback: T): T {
   if (value == null) return fallback;
   if (typeof value === 'string') {
@@ -384,10 +395,16 @@ const createSqliteProvider = (() => {
       insertSetting.run('primary_color', '#c3c0ff');
     }
 
-    const adminCount = db.prepare('SELECT count(*) as count FROM admin_users').get() as { count: number };
-    if (adminCount.count === 0) {
-      const hash = bcrypt.hashSync('admin123', 10);
-      db.prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)').run('aditya', hash);
+    const adminCreds = getDefaultAdminCredentials();
+    if (adminCreds.isConfigured) {
+      const hash = bcrypt.hashSync(adminCreds.password, 10);
+      db.prepare(`
+        INSERT INTO admin_users (username, password_hash)
+        VALUES (?, ?)
+        ON CONFLICT(username) DO UPDATE SET password_hash = excluded.password_hash
+      `).run(adminCreds.username, hash);
+    } else {
+      console.warn('Default admin account is not configured. Set DEFAULT_ADMIN_USERNAME and DEFAULT_ADMIN_PASSWORD in .env');
     }
 
     const profileCount = db.prepare('SELECT count(*) as count FROM profile').get() as { count: number };
@@ -785,24 +802,36 @@ const createMongoProvider = (() => {
   const ensureSeed = async () => {
     try {
       const db = await connection();
-      const hash = bcrypt.hashSync('admin123', 10);
+      const adminCreds = getDefaultAdminCredentials();
+      const seedOps: Promise<unknown>[] = [];
 
-      await Promise.all([
+      seedOps.push(
         db.collection('settings').updateOne(
           { _id: 'theme_mode' },
           { $setOnInsert: { key: 'theme_mode', value: 'dark' } },
           { upsert: true }
-        ),
+        )
+      );
+      seedOps.push(
         db.collection('settings').updateOne(
           { _id: 'primary_color' },
           { $setOnInsert: { key: 'primary_color', value: '#c3c0ff' } },
           { upsert: true }
-        ),
-        db.collection('admin_users').updateOne(
-          { _id: 'admin:aditya' },
-          { $setOnInsert: { id: 1, username: 'aditya', password_hash: hash } },
-          { upsert: true }
-        ),
+        )
+      );
+      if (adminCreds.isConfigured) {
+        const hash = bcrypt.hashSync(adminCreds.password, 10);
+        seedOps.push(
+          db.collection('admin_users').updateOne(
+            { username: adminCreds.username },
+            { $set: { username: adminCreds.username, password_hash: hash } },
+            { upsert: true }
+          )
+        );
+      } else {
+        console.warn('Default admin account is not configured. Set DEFAULT_ADMIN_USERNAME and DEFAULT_ADMIN_PASSWORD in .env');
+      }
+      seedOps.push(
         db.collection('profile').updateOne(
           { _id: 'profile:1' },
           {
@@ -818,8 +847,9 @@ const createMongoProvider = (() => {
             },
           },
           { upsert: true }
-        ),
-      ]);
+        )
+      );
+      await Promise.all(seedOps);
 
       const baseSections = REQUIRED_SECTIONS.map((section, index) => ({
         _id: section.id,
@@ -1235,10 +1265,17 @@ const createSupabaseProvider = (() => {
       { key: 'theme_mode', value: 'dark' },
       { key: 'primary_color', value: '#c3c0ff' },
     ]);
-    const { data: adminUsers } = await client.from('admin_users').select('id').limit(1);
-    if (!adminUsers || adminUsers.length === 0) {
-      const hash = bcrypt.hashSync('admin123', 10);
-      await client.from('admin_users').insert([{ id: 1, username: 'aditya', password_hash: hash }]);
+    const adminCreds = getDefaultAdminCredentials();
+    if (adminCreds.isConfigured) {
+      const hash = bcrypt.hashSync(adminCreds.password, 10);
+      await ensureSuccess(
+        client.from('admin_users').upsert(
+          [{ username: adminCreds.username, password_hash: hash }],
+          { onConflict: 'username' }
+        )
+      );
+    } else {
+      console.warn('Default admin account is not configured. Set DEFAULT_ADMIN_USERNAME and DEFAULT_ADMIN_PASSWORD in .env');
     }
     const { data: profileData } = await client.from('profile').select('id').eq('id', 1).limit(1);
     if (!profileData || profileData.length === 0) {

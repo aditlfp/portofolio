@@ -115,7 +115,7 @@ export default function ExperienceSection({ experience }: { experience: Experien
           </div>
         ) : (
           <div className="relative">
-            <div className="pointer-events-none absolute left-4 top-1 bottom-1 z-10 w-[2px] -translate-x-1/2 bg-gradient-to-b from-primary/80 via-primary/55 to-primary/80 shadow-[0_0_18px_rgba(138,63,252,0.45)] md:left-1/2" />
+            <div className="pointer-events-none absolute left-4 top-1 bottom-1 z-10 w-[2px] -translate-x-1/2 bg-gradient-to-b from-primary/80 via-primary/55 to-primary/80 shadow-[0_0_18px_rgba(138,63,252,0.45)] md:left-5" />
 
             <div className="space-y-8">
               {experience.map((item, index) => {
@@ -126,15 +126,10 @@ export default function ExperienceSection({ experience }: { experience: Experien
                 const description = resolveLocalizedField(item, 'description', activeLang, '');
                 const descriptionHtml = sanitizeHtml(toNarrativeHtml(description));
                 const highlights = extractHighlights(descriptionHtml, 3);
-                const isRight = index % 2 === 0;
 
                 return (
-                  <div key={item.id} className="relative md:grid md:grid-cols-2 md:gap-10">
-                    <div
-                      className={`pl-12 md:pl-0 ${
-                        isRight ? 'md:col-start-2 md:pr-0 md:pl-8' : 'md:col-start-1 md:pr-8 md:pl-0'
-                      }`}
-                    >
+                  <div key={item.id} className="relative">
+                    <div className="pl-12 md:pl-14">
                       <article className="rounded-2xl bg-surface-container-low p-5 sm:p-6 ring-1 ring-outline-variant/15 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
                         <div className="mb-3 flex flex-wrap items-center gap-2">
                           <span className="rounded-md bg-surface-container-high px-2 py-1 text-[11px] font-label uppercase tracking-wider text-on-surface-variant">
@@ -176,7 +171,7 @@ export default function ExperienceSection({ experience }: { experience: Experien
                       </article>
                     </div>
 
-                    <div className="pointer-events-none absolute left-4 top-6 z-20 -translate-x-1/2 md:left-1/2 md:top-7">
+                    <div className="pointer-events-none absolute left-4 top-6 z-20 -translate-x-1/2 md:left-5 md:top-7">
                       <div className="relative h-3.5 w-3.5">
                         <span className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/45 animate-ping" />
                         <span className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/45 animate-ping [animation-duration:1.6s]" />

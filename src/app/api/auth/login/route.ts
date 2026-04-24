@@ -5,6 +5,17 @@ import { getAdminUserByUsername } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
+    const defaultAdminUsername = (process.env.DEFAULT_ADMIN_USERNAME || '').trim();
+    const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD || '';
+    if (!defaultAdminUsername || !defaultAdminPassword) {
+      return NextResponse.json(
+        {
+          error: 'Default admin account is not configured. Please set DEFAULT_ADMIN_USERNAME and DEFAULT_ADMIN_PASSWORD in .env.',
+        },
+        { status: 503 }
+      );
+    }
+
     const { username, password } = await request.json();
 
     const user = await getAdminUserByUsername(username);
